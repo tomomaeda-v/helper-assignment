@@ -13,12 +13,9 @@
     --warn:#dc2626; --unassigned:#b45309; --unassigned-soft:#fef3c7; --drop:#bfdbfe;
     --user:#2563eb; --helper:#0d9488;
   }
-  body{ font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
-    background:var(--bg); color:var(--ink); font-size:13px; }
-  #gate{ position:fixed; inset:0; background:linear-gradient(135deg,#1e3a8a,#0f766e);
-    display:flex; align-items:center; justify-content:center; z-index:100; }
-  .gate-card{ background:#fff; border-radius:16px; padding:32px 30px; width:340px; max-width:90vw;
-    box-shadow:0 20px 50px rgba(0,0,0,.3); text-align:center; }
+  body{ font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif; background:var(--bg); color:var(--ink); font-size:13px; }
+  #gate{ position:fixed; inset:0; background:linear-gradient(135deg,#1e3a8a,#0f766e); display:flex; align-items:center; justify-content:center; z-index:100; }
+  .gate-card{ background:#fff; border-radius:16px; padding:32px 30px; width:340px; max-width:90vw; box-shadow:0 20px 50px rgba(0,0,0,.3); text-align:center; }
   .gate-card h2{ font-size:17px; margin-bottom:4px; }
   .gate-card p{ font-size:12px; color:var(--sub); margin-bottom:18px; line-height:1.6; }
   .gate-card input{ width:100%; padding:11px 13px; border:1px solid var(--line); border-radius:9px; font-size:14px; margin-bottom:10px; }
@@ -42,8 +39,7 @@
   .stats b{ color:var(--ink); font-size:14px; }
   .hint{ color:var(--sub); }
   .board{ display:flex; gap:12px; padding:16px 18px; overflow-x:auto; align-items:flex-start; min-height:60vh; }
-  .col{ background:var(--panel); border:1px solid var(--line); border-radius:12px; width:222px; min-width:222px;
-    max-height:calc(100vh - 150px); display:flex; flex-direction:column; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+  .col{ background:var(--panel); border:1px solid var(--line); border-radius:12px; width:222px; min-width:222px; max-height:calc(100vh - 150px); display:flex; flex-direction:column; box-shadow:0 1px 2px rgba(0,0,0,.04); }
   .col.drop-target{ outline:2px dashed var(--accent); background:var(--drop); }
   .col-head{ padding:10px 11px; border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--panel); border-radius:12px 12px 0 0; }
   .col-head .name{ font-weight:700; font-size:13.5px; display:flex; align-items:center; gap:6px; }
@@ -100,7 +96,7 @@
         <button data-of="二子玉川">二子玉川</button>
         <button data-of="用賀">用賀</button>
       </div>
-      <button class="btn" id="addEntity">＋追加</button>
+      <button class="btn" id="addEntity">＋列を追加</button>
       <button class="btn" id="exportCsv">CSV出力</button>
       <button class="btn primary" id="exportJson">保存(JSON)</button>
       <button class="btn" id="importJson">読込</button>
@@ -158,7 +154,6 @@ async function loadState(){
 }
 async function save(){ try{ const o=await encStr(CK, JSON.stringify(state)); localStorage.setItem(STORE_KEY, JSON.stringify(o)); }catch(e){} }
 
-// keep every assignment's helper & user represented as a column entity (so nothing disappears after cross-office moves)
 function reconcile(){
   const hset=new Set(state.helpers.map(h=>h.office+"|"+h.name));
   const uset=new Set(state.users.map(u=>u.office+"|"+u.name));
@@ -172,8 +167,8 @@ function officeBadge(of){ const cls=of==="二子玉川"?"futa":of==="用賀"?"yo
 function render(){
   reconcile();
   const b=$("#board"); b.innerHTML=""; const q=query.trim();
-  const dim = viewMode;                 // column dimension: 'user' or 'helper'
-  const other = dim==="helper" ? "user" : "helper";  // the card field
+  const dim = viewMode;
+  const other = dim==="helper" ? "user" : "helper";
   let cols = (dim==="helper" ? state.helpers : state.users).filter(e=> officeFilter==="all"||e.office===officeFilter);
   cols.sort((a,b)=>{ const au=a.name==="未配置"?1:0,bu=b.name==="未配置"?1:0; if(au!==bu)return au-bu;
     if(a.office!==b.office)return a.office.localeCompare(b.office,"ja"); return a.name.localeCompare(b.name,"ja"); });
@@ -192,7 +187,7 @@ function render(){
       <div class="col-meta"><span class="load ${hi}">${colLabel}</span><span>訪問 ${visitsSum}回</span></div></div><div class="cards"></div>`;
     const cardsEl=col.querySelector(".cards");
     const list=q?visible:items;
-    if(list.length===0){ cardsEl.innerHTML=`<div class="empty">${q?'—':'担当なし（ここにドロップ）'}</div>`; }
+    if(list.length===0){ cardsEl.innerHTML=`<div class="empty">${q?'—':'担当なし（下のボタンで追加／ここにドロップ）'}</div>`; }
     list.forEach(a=>{ const c=document.createElement("div"); c.className="card"+(a[other]==="未配置"?" un":""); c.draggable=true; c.dataset.id=a.id;
       c.innerHTML=`<div class="u">${a[other]}</div><div class="meta"><span class="v">${a.visits}回</span>${a.cat?`<span class="cat">${a.cat}</span>`:""}</div>`;
       cardsEl.appendChild(c); });
@@ -209,7 +204,7 @@ function render(){
     b.appendChild(col);
   });
   const add=document.createElement("div"); add.className="add-col";
-  add.innerHTML=`<button class="btn">＋ ${dim==="helper"?"ヘルパー":"利用者"}を追加</button>`;
+  add.innerHTML=`<button class="btn">＋ ${dim==="helper"?"ヘルパー":"利用者"}の列を追加</button>`;
   add.querySelector("button").onclick=addEntity; b.appendChild(add);
   b.querySelectorAll(".card").forEach(c=>{
     c.addEventListener("dragstart",ev=>{ ev.dataTransfer.setData("text/plain",c.dataset.id); c.classList.add("dragging"); });
@@ -219,10 +214,11 @@ function render(){
   const uc=new Set(scoped.map(a=>a.office+"|"+a.user)).size;
   $("#stats").innerHTML=`<span>ヘルパー <b>${hc}</b>名</span><span>利用者 <b>${uc}</b>名</span>
     <span>担当関係 <b>${scoped.length}</b>件</span><span>総訪問 <b>${totalVisits}</b>回</span>
-    <span class="hint">${dim==="user"?"列＝利用者／カード＝担当ヘルパー":"列＝ヘルパー／カード＝担当利用者"}・カードを別の列へドラッグで変更</span>`;
+    <span class="hint">${dim==="user"?"列＝利用者／カード＝担当ヘルパー":"列＝ヘルパー／カード＝担当利用者"}・カードを別の列へドラッグで変更、各列下のボタンで追加</span>`;
 }
 function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),1800); }
-function addCard(e){   // e = column entity {office,name}; add a new assignment card to it
+
+function addCard(e){
   const dim=viewMode; const other=dim==="helper"?"user":"helper";
   const label = other==="helper" ? "担当ヘルパー" : "利用者";
   const name=prompt(`「${e.name}」に追加する${label}名を入力してください`); if(!name)return;
@@ -251,4 +247,18 @@ function bindControls(){
     $("#officeSeg .active").classList.remove("active"); b.classList.add("active"); officeFilter=b.dataset.of; render(); });
   $("#search").addEventListener("input",e=>{ query=e.target.value; render(); });
   $("#addEntity").onclick=addEntity;
-  $("#resetBtn").onclick=()=>{ if(confirm("初期割り当てに戻します。よろしいですか？")){ state=seedState(); save
+  $("#resetBtn").onclick=()=>{ if(confirm("初期割り当てに戻します。よろしいですか？")){ state=seedState(); save(); render(); toast("初期状態に戻しました"); } };
+  $("#exportJson").onclick=()=>{ download("担当割振り.json", JSON.stringify(state,null,2)); toast("JSONを書き出しました"); };
+  $("#exportCsv").onclick=()=>{ const rows=[["事業所","ヘルパー","利用者","訪問回数","サービス分類","主なサービス名"]];
+    state.assignments.slice().sort((a,b)=>a.office.localeCompare(b.office,"ja")||a.user.localeCompare(b.user,"ja"))
+      .forEach(a=>rows.push([a.office,a.helper,a.user,a.visits,a.cat,a.svc]));
+    const csv="﻿"+rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\r\n");
+    download("担当割振り.csv", csv); toast("CSVを書き出しました"); };
+  $("#importJson").onclick=()=>$("#fileInput").click();
+  $("#fileInput").onchange=e=>{ const f=e.target.files[0]; if(!f)return; const r=new FileReader();
+    r.onload=()=>{ try{ const d=JSON.parse(r.result); if(d.helpers&&d.assignments){ state=ensureUsers(d); save(); render(); toast("読込みました"); } else toast("形式が不正です"); }catch(err){ toast("読込みに失敗しました"); } };
+    r.readAsText(f); e.target.value=""; };
+}
+</script>
+</body>
+</html>
