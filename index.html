@@ -64,6 +64,8 @@
   .card .v{ font-weight:700; color:var(--accent); }
   .cat{ display:inline-block; padding:0 5px; border-radius:4px; background:#f1f5f9; }
   .empty{ text-align:center; color:#cbd5e1; font-size:11px; padding:14px 4px; }
+  .add-card{ width:100%; margin-top:2px; padding:6px; border:1px dashed var(--line); border-radius:8px; background:#fff; color:var(--sub); font-size:11px; cursor:pointer; }
+  .add-card:hover{ background:#f8fafc; color:var(--accent); border-color:var(--accent); }
   .add-col{ width:222px; min-width:222px; }
   .add-col .btn{ width:100%; padding:14px; border-style:dashed; color:var(--sub); }
   footer{ text-align:center; color:var(--sub); font-size:11px; padding:10px; }
@@ -194,6 +196,9 @@ function render(){
     list.forEach(a=>{ const c=document.createElement("div"); c.className="card"+(a[other]==="未配置"?" un":""); c.draggable=true; c.dataset.id=a.id;
       c.innerHTML=`<div class="u">${a[other]}</div><div class="meta"><span class="v">${a.visits}回</span>${a.cat?`<span class="cat">${a.cat}</span>`:""}</div>`;
       cardsEl.appendChild(c); });
+    if(!q){ const addBtn=document.createElement("button"); addBtn.className="add-card";
+      addBtn.textContent="＋ "+(other==="helper"?"ヘルパー":"利用者")+"を追加";
+      addBtn.onclick=()=>addCard(e); cardsEl.appendChild(addBtn); }
     col.addEventListener("dragover",ev=>{ ev.preventDefault(); col.classList.add("drop-target"); });
     col.addEventListener("dragleave",ev=>{ if(!col.contains(ev.relatedTarget)) col.classList.remove("drop-target"); });
     col.addEventListener("drop",ev=>{ ev.preventDefault(); col.classList.remove("drop-target");
@@ -217,6 +222,15 @@ function render(){
     <span class="hint">${dim==="user"?"列＝利用者／カード＝担当ヘルパー":"列＝ヘルパー／カード＝担当利用者"}・カードを別の列へドラッグで変更</span>`;
 }
 function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),1800); }
+function addCard(e){   // e = column entity {office,name}; add a new assignment card to it
+  const dim=viewMode; const other=dim==="helper"?"user":"helper";
+  const label = other==="helper" ? "担当ヘルパー" : "利用者";
+  const name=prompt(`「${e.name}」に追加する${label}名を入力してください`); if(!name)return;
+  let v=prompt("訪問回数（数字。未定なら0）","0"); v=parseInt(v,10); if(isNaN(v)||v<0) v=0;
+  const id=(state.assignments.reduce((m,a)=>Math.max(m,a.id),0)||0)+1;
+  const a={id, office:e.office, visits:v, cat:"", svc:""}; a[dim]=e.name; a[other]=name;
+  state.assignments.push(a); save(); render(); toast(`${e.name} に ${name} を追加`);
+}
 function addEntity(){
   const isH=viewMode==="helper"; const label=isH?"ヘルパー":"利用者";
   const name=prompt(`追加する${label}名を入力してください`); if(!name)return;
@@ -237,18 +251,4 @@ function bindControls(){
     $("#officeSeg .active").classList.remove("active"); b.classList.add("active"); officeFilter=b.dataset.of; render(); });
   $("#search").addEventListener("input",e=>{ query=e.target.value; render(); });
   $("#addEntity").onclick=addEntity;
-  $("#resetBtn").onclick=()=>{ if(confirm("初期割り当てに戻します。よろしいですか？")){ state=seedState(); save(); render(); toast("初期状態に戻しました"); } };
-  $("#exportJson").onclick=()=>{ download("担当割振り.json", JSON.stringify(state,null,2)); toast("JSONを書き出しました"); };
-  $("#exportCsv").onclick=()=>{ const rows=[["事業所","ヘルパー","利用者","訪問回数","サービス分類","主なサービス名"]];
-    state.assignments.slice().sort((a,b)=>a.office.localeCompare(b.office,"ja")||a.user.localeCompare(b.user,"ja"))
-      .forEach(a=>rows.push([a.office,a.helper,a.user,a.visits,a.cat,a.svc]));
-    const csv="﻿"+rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\r\n");
-    download("担当割振り.csv", csv); toast("CSVを書き出しました"); };
-  $("#importJson").onclick=()=>$("#fileInput").click();
-  $("#fileInput").onchange=e=>{ const f=e.target.files[0]; if(!f)return; const r=new FileReader();
-    r.onload=()=>{ try{ const d=JSON.parse(r.result); if(d.helpers&&d.assignments){ state=ensureUsers(d); save(); render(); toast("読込みました"); } else toast("形式が不正です"); }catch(err){ toast("読込みに失敗しました"); } };
-    r.readAsText(f); e.target.value=""; };
-}
-</script>
-</body>
-</html>
+  $("#resetBtn").onclick=()=>{ if(confirm("初期割り当てに戻します。よろしいですか？")){ state=seedState(); save
