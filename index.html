@@ -48,7 +48,16 @@
   .seg{ display:inline-flex; border:1px solid var(--line); border-radius:999px; overflow:hidden; background:#fff; box-shadow:var(--shadow-sm); }
   .seg button{ border:none; background:transparent; padding:7px 15px; cursor:pointer; font-size:12px; color:var(--sub); transition:background .15s,color .15s; }
   .seg button.active{ background:var(--accent); color:#fff; font-weight:700; }
-  .seg.view button.active{ background:#0f172a; }
+  .seg.view{ gap:7px; border:none; border-radius:0; overflow:visible; background:transparent; box-shadow:none; }
+  .seg.view button{ display:inline-flex; align-items:center; gap:7px; padding:8px 13px 8px 9px; border:1px solid #d8e0eb; border-radius:12px; background:#fff; color:#475569; font-weight:800; box-shadow:0 2px 7px rgba(15,23,42,.08); transition:transform .15s,box-shadow .15s,border-color .15s,background .15s,color .15s; }
+  .seg.view button:hover{ transform:translateY(-1px); border-color:#9fb0c6; box-shadow:0 5px 14px rgba(15,23,42,.12); }
+  .seg.view button.active{ color:#fff; border-color:transparent; transform:translateY(-1px); box-shadow:0 7px 18px rgba(15,23,42,.22); }
+  .seg.view button[data-view="user"].active{ background:linear-gradient(135deg,#0f172a,#334155); }
+  .seg.view button[data-view="helper"].active{ background:linear-gradient(135deg,#047857,#059669); }
+  .seg.view button[data-view="calendar"].active{ background:linear-gradient(135deg,#1d4ed8,#2563eb); }
+  .view-icon{ display:inline-grid; place-items:center; width:24px; height:24px; border-radius:8px; background:#eef2f7; font-size:13px; line-height:1; }
+  .seg.view button.active .view-icon{ background:rgba(255,255,255,.18); }
+  .seg.view button:focus-visible{ outline:3px solid rgba(37,99,235,.25); outline-offset:2px; }
   input[type=search]{ padding:8px 14px; border:1px solid var(--line); border-radius:999px; font-size:12px; width:180px; background:#fff; box-shadow:var(--shadow-sm); transition:border-color .15s; }
   input[type=search]:focus{ outline:none; border-color:var(--accent); }
   .btn{ border:1px solid var(--line); background:#fff; padding:8px 14px; border-radius:999px; cursor:pointer; font-size:12px; color:var(--ink); box-shadow:var(--shadow-sm); transition:transform .12s, box-shadow .12s, background .12s; }
@@ -243,10 +252,9 @@
     <h1>訪問介護 担当割り振り確認ツール<small id="viewHint">利用者ごとに担当ヘルパーを組み換え</small></h1>
     <div class="controls">
       <div class="seg view" id="viewSeg">
-        <button data-view="user" class="active">利用者ベース</button>
-        <button data-view="helper">ヘルパーベース</button>
-        <button data-view="schedule">予定表</button>
-        <button data-view="calendar">カレンダー</button>
+        <button data-view="user" class="active"><span class="view-icon" aria-hidden="true">👤</span>利用者ベース</button>
+        <button data-view="helper"><span class="view-icon" aria-hidden="true">🧑‍⚕️</span>ヘルパーベース</button>
+        <button data-view="calendar"><span class="view-icon" aria-hidden="true">📅</span>カレンダー</button>
       </div>
       <input type="search" id="search" placeholder="名前で検索">
       <div class="seg" id="officeSeg">
@@ -487,7 +495,7 @@ function renderSchedule(){
   const label=from===to?fmtFullDate(from):`${fmtFullDate(from)} 〜 ${fmtFullDate(to)}`;
   panel.innerHTML=`<div class="schedule-shell">
     <div class="schedule-toolbar">
-      <div class="seg" id="scheduleRangeSeg"><button data-range="today" class="${scheduleRange==='today'?'active':''}">今日</button><button data-range="week" class="${scheduleRange==='week'?'active':''}">今週</button></div>
+      <div class="schedule-nav"><button class="btn" id="scheduleBack">← カレンダーへ戻る</button><div class="seg" id="scheduleRangeSeg"><button data-range="today" class="${scheduleRange==='today'?'active':''}">今日</button><button data-range="week" class="${scheduleRange==='week'?'active':''}">今週</button></div></div>
       <div class="schedule-nav"><button class="btn" id="schedulePrev" aria-label="前の期間">← 前へ</button><span class="period-label">${esc(label)}</span><button class="btn" id="scheduleNext" aria-label="次の期間">次へ →</button><button class="btn" id="scheduleNow">今日へ戻る</button></div>
     </div>
     <div id="scheduleDays"></div>
@@ -520,6 +528,7 @@ function renderSchedule(){
     <div class="sumcard"><span class="si">⏱️</span><div><div class="sv">${duration}</div><div class="sl">訪問時間合計</div></div></div>`;
   $("#stats").innerHTML=`<span>利用者 <b>${userCount}</b>名</span><span class="hint">訪問時間順・曜日付きで表示</span>`;
   $("#period").textContent=`📅 ${label}`;
+  $("#scheduleBack").onclick=()=>{ viewMode="calendar"; $("#viewHint").textContent="訪問件数の集中を月・曜日別に確認"; render(); };
   $("#scheduleRangeSeg").onclick=e=>{ const b=e.target.closest("button"); if(!b)return; scheduleRange=b.dataset.range; scheduleAnchor=todayKey(); render(); };
   $("#schedulePrev").onclick=()=>{ scheduleAnchor=addDays(scheduleAnchor,scheduleRange==="week"?-7:-1); render(); };
   $("#scheduleNext").onclick=()=>{ scheduleAnchor=addDays(scheduleAnchor,scheduleRange==="week"?7:1); render(); };
@@ -573,7 +582,6 @@ function renderCalendar(){
   $("#calendarNow").onclick=()=>{ calendarAnchor=todayKey(); render(); };
   panel.querySelectorAll(".calendar-day[data-count]").forEach(cell=>{ if(+cell.dataset.count>0)cell.onclick=()=>{
     scheduleAnchor=cell.dataset.date; scheduleRange="today"; viewMode="schedule";
-    $("#viewSeg .active").classList.remove("active"); $("#viewSeg [data-view='schedule']").classList.add("active");
     $("#viewHint").textContent="訪問予定を日付・曜日・時間順に確認"; render();
   }; });
 }
