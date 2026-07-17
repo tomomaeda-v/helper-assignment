@@ -117,6 +117,7 @@
   .date-label{ color:var(--sub); font-size:11px; font-weight:700; margin-bottom:5px; }
   .date-list{ display:flex; flex-wrap:wrap; gap:4px; }
   .date-chip{ display:inline-flex; align-items:center; padding:2px 7px; border-radius:999px; background:var(--accent-soft); color:var(--accent); font-size:10.5px; font-weight:700; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .slot-service{ margin-left:6px; padding-left:6px; border-left:1px solid rgba(37,99,235,.25); color:#1e40af; font-weight:900; }
   .date-none{ color:#9aa4b2; font-size:11px; }
   .schedule-panel{ padding:18px 22px 26px; }
   .schedule-shell{ max-width:1180px; margin:0 auto; }
@@ -370,8 +371,8 @@ function render(){
     sd.items.forEach(a=>{ const c=document.createElement("div"); c.className="card"+(a[other]==="未配置"?" un":""); c.draggable=true; c.dataset.id=a.id;
       const sug=sd.isUn?`<button class="suggest-btn" data-sug="${a.id}">💡 空いている人に割り当て</button>`:"";
       const slots=assignmentVisitSlots(a);
-      const dateList=slots.length ? slots.map(slot=>`<span class="date-chip">${esc(fmtVisitSlot(slot))}</span>`).join("") : `<span class="date-none">CSVから未取得</span>`;
-      const dateBlock=`<div class="visit-dates"><div class="date-label">訪問日時（CSV）</div><div class="date-list">${dateList}</div></div>`;
+      const dateList=slots.length ? slots.map(slot=>{ const service=slot.svc||slot.cat||""; return `<span class="date-chip">${esc(fmtVisitSlot(slot))}${service?`<span class="slot-service">${esc(service)}</span>`:""}</span>`; }).join("") : `<span class="date-none">CSVから未取得</span>`;
+      const dateBlock=`<div class="visit-dates"><div class="date-label">訪問日時・サービス（CSV）</div><div class="date-list">${dateList}</div></div>`;
       c.innerHTML=`<span class="grip" title="ドラッグで移動できます">⠿</span><div class="body"><div class="u">${a[other]}</div><div class="meta"><span class="v">${a.visits}回</span>${a.cat?`<span class="cat">${a.cat}</span>`:""}</div>${dateBlock}${sug}</div>`;
       cardsEl.appendChild(c); });
     cardsEl.querySelectorAll(".suggest-btn").forEach(btn=>btn.onclick=()=>{
