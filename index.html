@@ -236,7 +236,8 @@
   .map-empty-overlay{ position:absolute; z-index:5; inset:0; display:grid; place-content:center; padding:32px; text-align:center; color:var(--sub); }
   .map-empty-overlay > div{ padding:20px 24px; border:1px solid rgba(203,213,225,.85); border-radius:16px; background:rgba(255,255,255,.91); box-shadow:var(--shadow-md); }
   .map-empty-overlay strong{ display:block; margin-bottom:5px; color:var(--ink); font-family:var(--font-head); font-size:17px; }
-  .map-detail{ min-height:0; overflow:hidden; border:1px solid var(--line); border-radius:var(--r-lg); background:#fff; box-shadow:var(--shadow-md); display:flex; flex-direction:column; }
+  .map-detail-slot{ position:relative; min-width:0; min-height:0; }
+  .map-detail{ position:absolute; inset:0; min-height:0; overflow:hidden; border:1px solid var(--line); border-radius:var(--r-lg); background:#fff; box-shadow:var(--shadow-md); display:flex; flex-direction:column; }
   .map-detail-head{ padding:17px 18px; color:#fff; background:linear-gradient(135deg,#172033,#39465d); }
   .map-detail-head h2{ font-family:var(--font-head); font-size:17px; line-height:1.4; }
   .map-detail-meta{ margin-top:5px; color:rgba(255,255,255,.82); font-size:11px; }
@@ -281,7 +282,8 @@
     .map-panel{ padding:14px 12px 22px; }
     .map-layout{ grid-template-columns:1fr; }
     .map-board{ min-height:0; }
-    .map-detail{ min-height:0; max-height:520px; }
+    .map-detail-slot{ height:min(520px,70vh); min-height:380px; }
+    .map-detail{ max-height:none; }
     .map-marker-label{ max-width:92px; }
   }
 </style>
@@ -607,7 +609,7 @@ function renderMap(){
     const point=coordToMapPoint(coord);
     return point?`<span class="office-location${name==="二子玉川"?" futa":""}" style="left:${point[0]}%;top:${point[1]}%">${name}事業所</span>`:"";
   }).join("");
-  panel.innerHTML=`<div class="map-shell"><div class="map-toolbar"><div><div class="map-kicker">利用者エリアマップ</div><div class="map-subtitle">世田谷区周辺の実地図上に、町名・郵便番号単位の概略位置を表示します。</div></div><div class="map-key"><span><i></i>用賀</span><span><i class="futa"></i>二子玉川</span><span><i class="office"></i>事業所</span></div></div><div class="map-layout"><div class="map-board" aria-label="利用者のエリア分布"><span class="map-direction north">↑ 北</span>${officeMarkers}${markers}${empty}<span class="map-attribution">出典：<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a>（地理院タイルを加工）</span></div>${detail}</div><div class="map-notice"><span aria-hidden="true">🔒</span><div><strong>住所は外部送信しません。</strong> 地図画像はサイト内に保存済みです。番地・建物名は保存せず、町名と郵便番号の先頭3桁だけをこの端末内で使用します。</div></div></div>`;
+  panel.innerHTML=`<div class="map-shell"><div class="map-toolbar"><div><div class="map-kicker">利用者エリアマップ</div><div class="map-subtitle">世田谷区周辺の実地図上に、町名・郵便番号単位の概略位置を表示します。</div></div><div class="map-key"><span><i></i>用賀</span><span><i class="futa"></i>二子玉川</span><span><i class="office"></i>事業所</span></div></div><div class="map-layout"><div class="map-board" aria-label="利用者のエリア分布"><span class="map-direction north">↑ 北</span>${officeMarkers}${markers}${empty}<span class="map-attribution">出典：<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a>（地理院タイルを加工）</span></div><div class="map-detail-slot">${detail}</div></div><div class="map-notice"><span aria-hidden="true">🔒</span><div><strong>住所は外部送信しません。</strong> 地図画像はサイト内に保存済みです。番地・建物名は保存せず、町名と郵便番号の先頭3桁だけをこの端末内で使用します。</div></div></div>`;
   panel.querySelectorAll("[data-map-key]").forEach(marker=>marker.onclick=()=>{ mapSelectedKey=marker.dataset.mapKey; renderMap(); });
   const plottedUsers=located.length;
   $("#summary").innerHTML=`<div class="sumcard"><span class="si">🏠</span><div><div class="sv">${scoped.length}</div><div class="sl">対象利用者</div></div></div><div class="sumcard"><span class="si">📍</span><div><div class="sv">${plottedUsers}</div><div class="sl">地図表示</div></div></div><div class="sumcard"><span class="si">🗺️</span><div><div class="sv">${groups.length}</div><div class="sl">エリア数</div></div></div><div class="sumcard ${unlocated.length?"warn":"ok"}"><span class="si">⚠️</span><div><div class="sv">${unlocated.length}</div><div class="sl">位置データなし</div></div></div>`;
