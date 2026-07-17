@@ -113,6 +113,14 @@
   .card .meta{ font-size:11.5px; color:var(--sub); margin-top:3px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
   .card .v{ font-weight:700; color:var(--accent); }
   .cat{ display:inline-block; padding:1px 7px; border-radius:999px; background:#eef2f7; }
+  .visit-dates{ margin-top:8px; padding-top:7px; border-top:1px dashed var(--line); }
+  .visit-dates-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:5px; }
+  .date-label{ color:var(--sub); font-size:11px; font-weight:700; }
+  .date-list{ display:flex; flex-wrap:wrap; gap:4px; }
+  .date-chip{ display:inline-flex; align-items:center; padding:2px 7px; border-radius:999px; background:var(--accent-soft); color:var(--accent); font-size:10.5px; font-weight:700; }
+  .date-none{ color:#9aa4b2; font-size:11px; }
+  .date-edit-btn{ border:1px solid var(--line); background:#fff; color:var(--sub); border-radius:999px; padding:2px 8px; font-size:10.5px; cursor:pointer; }
+  .date-edit-btn:hover{ border-color:var(--accent); color:var(--accent); background:#f8fbff; }
   .suggest-btn{ border:none; background:var(--unassigned-soft); color:var(--unassigned); font-size:11px; font-weight:700; padding:5px 12px; border-radius:999px; cursor:pointer; margin-top:7px; transition:all .12s; }
   .suggest-btn:hover{ background:var(--unassigned); color:#fff; }
   .empty{ text-align:center; color:#c3ccd8; font-size:12px; padding:18px 4px; }
@@ -234,10 +242,14 @@ function seedState(){
   const helpers=[], hseen=new Set(), users=[], useen=new Set();
   SEED.forEach(d=>{ const hk=d.office+"|"+d.helper; if(!hseen.has(hk)){hseen.add(hk);helpers.push({office:d.office,name:d.helper});}
     const uk=d.office+"|"+d.user; if(!useen.has(uk)){useen.add(uk);users.push({office:d.office,name:d.user});} });
-  const assignments=SEED.map((d,i)=>({id:i+1,office:d.office,helper:d.helper,user:d.user,visits:d.visits||0,cat:d.cat||"",svc:d.svc||""}));
+  const assignments=SEED.map((d,i)=>({id:i+1,office:d.office,helper:d.helper,user:d.user,visits:d.visits||0,cat:d.cat||"",svc:d.svc||"",dates:normalizeVisitDates(d.dates||d.visitDates||[])}));
   return {helpers, users, assignments};
 }
-function ensureUsers(st){ if(!st.users){ const u=[],s=new Set(); st.assignments.forEach(a=>{const k=a.office+"|"+a.user; if(!s.has(k)){s.add(k);u.push({office:a.office,name:a.user});}}); st.users=u; } return st; }
+function ensureUsers(st){
+  if(!st.users){ const u=[],s=new Set(); st.assignments.forEach(a=>{const k=a.office+"|"+a.user; if(!s.has(k)){s.add(k);u.push({office:a.office,name:a.user});}}); st.users=u; }
+  st.assignments.forEach(a=>{ a.dates=normalizeVisitDates(a.dates||a.visitDates||[]); });
+  return st;
+}
 async function loadState(){
   try{ const s=localStorage.getItem(STORE_KEY); if(s){ const o=JSON.parse(s); const pt=await dec(CK,o.iv,o.ct); const d=JSON.parse(pt); if(d.helpers&&d.assignments) return ensureUsers(d); } }catch(e){}
   return seedState();
@@ -313,8 +325,12 @@ function render(){
     if(sd.items.length===0){ cardsEl.innerHTML=`<div class="empty">担当なし（下のボタンで追加／ここにドロップ）</div>`; }
     sd.items.forEach(a=>{ const c=document.createElement("div"); c.className="card"+(a[other]==="未配置"?" un":""); c.draggable=true; c.dataset.id=a.id;
       const sug=sd.isUn?`<button class="suggest-btn" data-sug="${a.id}">💡 空いている人に割り当て</button>`:"";
-      c.innerHTML=`<span class="grip" title="ドラッグで移動できます">⠿</span><div class="body"><div class="u">${a[other]}</div><div class="meta"><span class="v">${a.visits}回</span>${a.cat?`<span class="cat">${a.cat}</span>`:""}</div>${sug}</div>`;
+      const dates=normalizeVisitDates(a.dates);
+      const dateList=dates.length ? dates.map(d=>`<span class="date-chip">${fmtVisitDate(d)}</span>`).join("") : `<span class="date-none">未登録</span>`;
+      const dateBlock=`<div class="visit-dates"><div class="visit-dates-head"><span class="date-label">訪問日</span><button type="button" class="date-edit-btn" data-date-id="${a.id}">編集</button></div><div class="date-list">${dateList}</div></div>`;
+      c.innerHTML=`<span class="grip" title="ドラッグで移動できます">⠿</span><div class="body"><div class="u">${a[other]}</div><div class="meta"><span class="v">${a.visits}回</span>${a.cat?`<span class="cat">${a.cat}</span>`:""}</div>${dateBlock}${sug}</div>`;
       cardsEl.appendChild(c); });
+    cardsEl.querySelectorAll(".date-edit-btn").forEach(btn=>btn.onclick=ev=>{ ev.preventDefault(); ev.stopPropagation(); editVisitDates(+btn.dataset.dateId); });
     cardsEl.querySelectorAll(".suggest-btn").forEach(btn=>btn.onclick=()=>{
       const a=state.assignments.find(x=>x.id===+btn.dataset.sug); if(!a)return;
       const cands=(dim==="helper"?state.helpers:state.users).filter(c2=>c2.office===a.office&&c2.name!=="未配置");
@@ -373,9 +389,35 @@ function pickOffice(title){
     m.onclick=e=>{ if(e.target===m) done(null); };
   });
 }
-function normDate(s){ const m=String(s||"").match(/(\d{4})[\/\-年](\d{1,2})[\/\-月](\d{1,2})/); if(!m)return null;
+function normDate(s){ const m=String(s||"").trim().match(/^(\d{4})[\/\-年](\d{1,2})[\/\-月](\d{1,2})/); if(!m)return null;
+  const y=+m[1], mo=+m[2], d=+m[3], dt=new Date(Date.UTC(y,mo-1,d));
+  if(dt.getUTCFullYear()!==y||dt.getUTCMonth()!==mo-1||dt.getUTCDate()!==d)return null;
   return m[1]+"/"+("0"+m[2]).slice(-2)+"/"+("0"+m[3]).slice(-2); }
 function fmtPeriodDate(s){ const m=s.match(/(\d{4})\/(\d{2})\/(\d{2})/); return m? `${+m[2]}月${+m[3]}日` : s; }
+function fmtVisitDate(s){ const m=String(s||"").match(/(\d{4})\/(\d{2})\/(\d{2})/); return m? `${+m[1]}/${+m[2]}/${+m[3]}` : s; }
+function normalizeVisitDates(values){
+  const src=Array.isArray(values)?values:[];
+  return [...new Set(src.map(normDate).filter(Boolean))].sort();
+}
+function parseVisitDatesInput(value){
+  const parts=String(value||"").split(/[,、;；\s]+/).map(s=>s.trim()).filter(Boolean);
+  const invalid=parts.filter(s=>!normDate(s));
+  return {dates:normalizeVisitDates(parts),invalid};
+}
+function includePeriodDates(dates){
+  const ds=normalizeVisitDates(dates); if(!ds.length)return;
+  const p=state.period||{};
+  state.period={from:(p.from&&p.from<ds[0])?p.from:ds[0],to:(p.to&&p.to>ds[ds.length-1])?p.to:ds[ds.length-1]};
+}
+function editVisitDates(id){
+  const a=state.assignments.find(x=>x.id===id); if(!a)return;
+  const raw=prompt("訪問日を入力してください（例：2026/7/1, 2026/7/8）\n複数日はカンマ区切り、すべて消す場合は空欄にします。",normalizeVisitDates(a.dates).join(", "));
+  if(raw===null)return;
+  const parsed=parseVisitDatesInput(raw);
+  if(parsed.invalid.length){ alert(`日付の形式を確認してください：${parsed.invalid.join("、")}`); return; }
+  a.dates=parsed.dates; includePeriodDates(a.dates);
+  save(); render(); toast("訪問日を更新しました");
+}
 
 function parseCSV(text){
   const rows=[]; let row=[]; let field=""; let inQuotes=false;
@@ -410,10 +452,12 @@ async function importScheduleCsv(file){
     const row=rows[r]; if(!row)continue;
     const user=(row[iUser]||"").trim(), helper=(row[iHelper]||"").trim();
     if(!user||!helper)continue;
-    if(iDate>=0){ const d=normDate(row[iDate]); if(d){ if(!minDate||d<minDate)minDate=d; if(!maxDate||d>maxDate)maxDate=d; } }
+    const visitDate=iDate>=0?normDate(row[iDate]):null;
+    if(visitDate){ if(!minDate||visitDate<minDate)minDate=visitDate; if(!maxDate||visitDate>maxDate)maxDate=visitDate; }
     const key=helper+" "+user;
-    if(!map.has(key)) map.set(key,{helper,user,visits:0,cat:(row[iCat]||"").trim(),svc:(row[iSvc]||"").trim()});
-    map.get(key).visits++;
+    if(!map.has(key)) map.set(key,{helper,user,visits:0,cat:(row[iCat]||"").trim(),svc:(row[iSvc]||"").trim(),dates:[]});
+    const item=map.get(key); item.visits++;
+    if(visitDate&&!item.dates.includes(visitDate)) item.dates.push(visitDate);
   }
   if(map.size===0){ toast("取り込めるデータが見つかりませんでした"); return; }
   if(minDate&&maxDate){ const p=state.period||{};
@@ -421,8 +465,8 @@ async function importScheduleCsv(file){
   let nextId=(state.assignments.reduce((m,a)=>Math.max(m,a.id),0)||0)+1, added=0, updated=0;
   map.forEach(v=>{
     const existing=state.assignments.find(a=>a.office===of&&a.helper===v.helper&&a.user===v.user);
-    if(existing){ existing.visits=v.visits; if(v.cat)existing.cat=v.cat; if(v.svc)existing.svc=v.svc; updated++; }
-    else { state.assignments.push({id:nextId++, office:of, helper:v.helper, user:v.user, visits:v.visits, cat:v.cat, svc:v.svc}); added++; }
+    if(existing){ existing.visits=v.visits; if(iDate>=0)existing.dates=normalizeVisitDates(v.dates); if(v.cat)existing.cat=v.cat; if(v.svc)existing.svc=v.svc; updated++; }
+    else { state.assignments.push({id:nextId++, office:of, helper:v.helper, user:v.user, visits:v.visits, cat:v.cat, svc:v.svc, dates:normalizeVisitDates(v.dates)}); added++; }
   });
   save(); render(); toast(`CSVを取り込みました（新規${added}件・更新${updated}件）`);
 }
@@ -431,10 +475,13 @@ function addCard(e){
   const dim=viewMode; const other=dim==="helper"?"user":"helper";
   const label = other==="helper" ? "担当ヘルパー" : "利用者";
   const name=prompt(`「${e.name}」に追加する${label}名を入力してください`); if(!name)return;
-  let v=prompt("訪問回数（数字。未定なら0）","0"); v=parseInt(v,10); if(isNaN(v)||v<0) v=0;
+  const rawDates=prompt("訪問日を入力してください（例：2026/7/1, 2026/7/8）\n複数日はカンマ区切り、未定なら空欄にします。",""); if(rawDates===null)return;
+  const parsed=parseVisitDatesInput(rawDates);
+  if(parsed.invalid.length){ alert(`日付の形式を確認してください：${parsed.invalid.join("、")}`); return; }
+  let v=prompt("訪問回数（数字。未定なら0）",String(parsed.dates.length)); if(v===null)return; v=parseInt(v,10); if(isNaN(v)||v<0) v=0;
   const id=(state.assignments.reduce((m,a)=>Math.max(m,a.id),0)||0)+1;
-  const a={id, office:e.office, visits:v, cat:"", svc:""}; a[dim]=e.name; a[other]=name;
-  state.assignments.push(a); save(); render(); toast(`${e.name} に ${name} を追加`);
+  const a={id, office:e.office, visits:v, cat:"", svc:"", dates:parsed.dates}; a[dim]=e.name; a[other]=name;
+  state.assignments.push(a); includePeriodDates(a.dates); save(); render(); toast(`${e.name} に ${name} を追加`);
 }
 async function addEntity(){
   const isH=viewMode==="helper"; const label=isH?"ヘルパー":"利用者";
@@ -458,9 +505,9 @@ function bindControls(){
   $("#addEntity").onclick=addEntity;
   $("#resetBtn").onclick=()=>{ if(confirm("すべてのデータ（取り込んだCSV・手動での変更・初期割り当て）を消して、空の状態にします。よろしいですか？")){ state={helpers:[],users:[],assignments:[]}; save(); render(); toast("すべてのデータを消去しました"); } };
   $("#exportJson").onclick=()=>{ download("担当割振り.json", JSON.stringify(state,null,2)); toast("JSONを書き出しました"); };
-  $("#exportCsv").onclick=()=>{ const rows=[["事業所","ヘルパー","利用者","訪問回数","サービス分類","主なサービス名"]];
+  $("#exportCsv").onclick=()=>{ const rows=[["事業所","ヘルパー","利用者","訪問回数","訪問日一覧","サービス分類","主なサービス名"]];
     state.assignments.slice().sort((a,b)=>a.office.localeCompare(b.office,"ja")||a.user.localeCompare(b.user,"ja"))
-      .forEach(a=>rows.push([a.office,a.helper,a.user,a.visits,a.cat,a.svc]));
+      .forEach(a=>rows.push([a.office,a.helper,a.user,a.visits,normalizeVisitDates(a.dates).join("・"),a.cat,a.svc]));
     const csv="﻿"+rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\r\n");
     download("担当割振り.csv", csv); toast("CSVを書き出しました"); };
   $("#importSchedule").onclick=()=>$("#scheduleFileInput").click();
