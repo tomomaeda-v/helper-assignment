@@ -116,7 +116,7 @@
   .visit-dates{ margin-top:8px; padding-top:7px; border-top:1px dashed var(--line); }
   .date-label{ color:var(--sub); font-size:11px; font-weight:700; margin-bottom:5px; }
   .date-list{ display:flex; flex-wrap:wrap; gap:4px; }
-  .date-chip{ display:inline-flex; align-items:center; padding:2px 7px; border-radius:999px; background:var(--accent-soft); color:var(--accent); font-size:10.5px; font-weight:700; }
+  .date-chip{ display:inline-flex; align-items:center; padding:2px 7px; border-radius:999px; background:var(--accent-soft); color:var(--accent); font-size:10.5px; font-weight:700; white-space:nowrap; font-variant-numeric:tabular-nums; }
   .date-none{ color:#9aa4b2; font-size:11px; }
   .schedule-panel{ padding:18px 22px 26px; }
   .schedule-shell{ max-width:1180px; margin:0 auto; }
@@ -369,9 +369,9 @@ function render(){
     if(sd.items.length===0){ cardsEl.innerHTML=`<div class="empty">担当なし（下のボタンで追加／ここにドロップ）</div>`; }
     sd.items.forEach(a=>{ const c=document.createElement("div"); c.className="card"+(a[other]==="未配置"?" un":""); c.draggable=true; c.dataset.id=a.id;
       const sug=sd.isUn?`<button class="suggest-btn" data-sug="${a.id}">💡 空いている人に割り当て</button>`:"";
-      const dates=normalizeVisitDates(a.dates);
-      const dateList=dates.length ? dates.map(d=>`<span class="date-chip">${fmtVisitDate(d)}</span>`).join("") : `<span class="date-none">CSVから未取得</span>`;
-      const dateBlock=`<div class="visit-dates"><div class="date-label">訪問日（CSV）</div><div class="date-list">${dateList}</div></div>`;
+      const slots=assignmentVisitSlots(a);
+      const dateList=slots.length ? slots.map(slot=>`<span class="date-chip">${esc(fmtVisitSlot(slot))}</span>`).join("") : `<span class="date-none">CSVから未取得</span>`;
+      const dateBlock=`<div class="visit-dates"><div class="date-label">訪問日時（CSV）</div><div class="date-list">${dateList}</div></div>`;
       c.innerHTML=`<span class="grip" title="ドラッグで移動できます">⠿</span><div class="body"><div class="u">${a[other]}</div><div class="meta"><span class="v">${a.visits}回</span>${a.cat?`<span class="cat">${a.cat}</span>`:""}</div>${dateBlock}${sug}</div>`;
       cardsEl.appendChild(c); });
     cardsEl.querySelectorAll(".suggest-btn").forEach(btn=>btn.onclick=()=>{
@@ -517,6 +517,16 @@ function timeRange(value){
 function normalizeScheduleItem(s){
   if(!s)return null; const date=normDate(s.date||s.visitDate||s.serviceDate); if(!date)return null;
   return {office:String(s.office||""),user:String(s.user||"未配置"),helper:String(s.helper||"未配置"),date,start:normTime(s.start),end:normTime(s.end),cat:String(s.cat||""),svc:String(s.svc||"")};
+}
+function assignmentVisitSlots(a){
+  const slots=(state.schedule||[]).map(normalizeScheduleItem).filter(Boolean)
+    .filter(s=>s.office===a.office&&s.user===a.user&&s.helper===a.helper)
+    .sort((x,y)=>x.date.localeCompare(y.date)||scheduleSortTime(x).localeCompare(scheduleSortTime(y)));
+  return slots.length?slots:normalizeVisitDates(a.dates).map(date=>({date,start:"",end:""}));
+}
+function fmtVisitSlot(slot){
+  const time=slot.start?(slot.end?`${slot.start}–${slot.end}`:slot.start):"";
+  return `${fmtVisitDate(slot.date)}${time?" "+time:""}`;
 }
 function scheduleSortTime(s){ return s.start||"99:99"; }
 function timeToMinutes(s){ const m=String(s||"").match(/(\d{2}):(\d{2})/); return m?+m[1]*60+(+m[2]):null; }
