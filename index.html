@@ -147,6 +147,44 @@
   .schedule-day-empty{ padding:22px 16px; text-align:center; color:#9aa4b2; font-size:12px; }
   .schedule-empty{ background:#fff; border:1px dashed #cbd5e1; border-radius:var(--r-lg); padding:48px 20px; text-align:center; color:var(--sub); }
   .schedule-empty strong{ display:block; color:var(--ink); font-family:var(--font-head); font-size:16px; margin-bottom:5px; }
+  .calendar-panel{ padding:18px 22px 28px; }
+  .calendar-shell{ max-width:1180px; margin:0 auto; }
+  .calendar-toolbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+  .calendar-title{ font-family:var(--font-head); font-size:18px; font-weight:800; min-width:150px; text-align:center; }
+  .calendar-nav{ display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
+  .weekday-load{ display:grid; grid-template-columns:repeat(7,minmax(90px,1fr)); gap:8px; margin-bottom:14px; }
+  .weekday-load-item{ background:#fff; border:1px solid var(--line); border-radius:var(--r-md); padding:11px 10px; box-shadow:var(--shadow-sm); text-align:center; }
+  .weekday-load-name{ font-family:var(--font-head); font-size:12px; font-weight:800; }
+  .weekday-load-value{ font-family:var(--font-head); font-size:20px; font-weight:900; margin:3px 0 6px; }
+  .weekday-load-track{ height:6px; background:#e8edf4; border-radius:999px; overflow:hidden; }
+  .weekday-load-fill{ height:100%; background:linear-gradient(90deg,#60a5fa,#2563eb); border-radius:999px; }
+  .weekday-load-item.peak{ border-color:#93c5fd; background:#eff6ff; }
+  .weekday-load-item.peak .weekday-load-value{ color:var(--accent); }
+  .weekday-load-share{ color:var(--sub); font-size:10px; margin-top:5px; }
+  .calendar-card{ background:#fff; border:1px solid var(--line); border-radius:var(--r-lg); overflow:hidden; box-shadow:var(--shadow-md); }
+  .calendar-scroll{ overflow-x:auto; }
+  .calendar-grid{ display:grid; grid-template-columns:repeat(7,minmax(108px,1fr)); min-width:760px; }
+  .calendar-weekday{ padding:9px 6px; text-align:center; background:#f8fafc; border-bottom:1px solid var(--line); color:var(--sub); font-size:11px; font-weight:800; }
+  .calendar-weekday.sun{ color:#dc2626; }
+  .calendar-weekday.sat{ color:#2563eb; }
+  .calendar-blank,.calendar-day{ min-height:96px; border-right:1px solid var(--line); border-bottom:1px solid var(--line); }
+  .calendar-day{ padding:9px; cursor:pointer; transition:transform .12s,box-shadow .12s; position:relative; }
+  .calendar-day:nth-child(7n),.calendar-weekday:nth-child(7n){ border-right:none; }
+  .calendar-day:hover{ z-index:1; transform:translateY(-1px); box-shadow:inset 0 0 0 2px var(--accent),0 6px 16px rgba(15,23,42,.10); }
+  .calendar-day.heat-0{ background:#fff; cursor:default; }
+  .calendar-day.heat-0:hover{ transform:none; box-shadow:none; }
+  .calendar-day.heat-1{ background:#eff6ff; }
+  .calendar-day.heat-2{ background:#dbeafe; }
+  .calendar-day.heat-3{ background:#bfdbfe; }
+  .calendar-day.heat-4{ background:#93c5fd; }
+  .calendar-date{ font-weight:800; font-variant-numeric:tabular-nums; }
+  .calendar-date.sun{ color:#dc2626; }
+  .calendar-date.sat{ color:#2563eb; }
+  .calendar-count{ display:block; font-family:var(--font-head); font-size:20px; font-weight:900; color:#1d4ed8; margin-top:12px; }
+  .calendar-count small{ font-family:"Noto Sans JP",sans-serif; font-size:10px; margin-left:2px; }
+  .calendar-people{ color:var(--sub); font-size:10px; margin-top:2px; }
+  .calendar-legend{ display:flex; align-items:center; justify-content:flex-end; gap:5px; padding:10px 13px; color:var(--sub); font-size:10px; background:#f8fafc; }
+  .heat-swatch{ width:18px; height:10px; border-radius:3px; }
   .suggest-btn{ border:none; background:var(--unassigned-soft); color:var(--unassigned); font-size:11px; font-weight:700; padding:5px 12px; border-radius:999px; cursor:pointer; margin-top:7px; transition:all .12s; }
   .suggest-btn:hover{ background:var(--unassigned); color:#fff; }
   .empty{ text-align:center; color:#c3ccd8; font-size:12px; padding:18px 4px; }
@@ -180,6 +218,10 @@
     .schedule-grid.row .schedule-cell:nth-child(4){ grid-column:1/-1; border-top:1px dashed var(--line); margin-top:4px; }
     .schedule-grid.row .schedule-cell:last-child{ position:absolute; right:20px; margin-top:1px; }
     .schedule-grid.row{ position:relative; }
+    .calendar-panel{ padding:14px 12px 22px; }
+    .weekday-load{ grid-template-columns:repeat(7,76px); overflow-x:auto; padding-bottom:4px; }
+    .calendar-nav{ width:100%; justify-content:center; }
+    .calendar-title{ order:-1; width:100%; }
   }
 </style>
 </head>
@@ -204,6 +246,7 @@
         <button data-view="user" class="active">利用者ベース</button>
         <button data-view="helper">ヘルパーベース</button>
         <button data-view="schedule">予定表</button>
+        <button data-view="calendar">カレンダー</button>
       </div>
       <input type="search" id="search" placeholder="名前で検索">
       <div class="seg" id="officeSeg">
@@ -233,6 +276,7 @@
   <div class="detail-panel" id="detailPanel"></div>
 </div>
 <div class="schedule-panel" id="schedulePanel" style="display:none"></div>
+<div class="calendar-panel" id="calendarPanel" style="display:none"></div>
 <footer>変更は暗号化してこの端末のブラウザに自動保存されます。「保存(JSON)」でデータをファイルに書き出せます。</footer>
 </div>
 <div class="toast" id="toast"></div>
@@ -252,6 +296,7 @@ const ENC = {"v": 1, "iters": 250000, "salt": "8w3Kzqr/dTXQ5/rF/uyP3A==", "iv": 
 const STORE_KEY = "kaigo_assign_enc_v1";
 let SEED=null, CK=null, state=null, officeFilter="all", query="", viewMode="user", selected=null;
 let scheduleRange="today", scheduleAnchor=todayKey();
+let calendarAnchor=todayKey();
 const $ = s=>document.querySelector(s);
 
 function b64ToBytes(b){ const s=atob(b); const a=new Uint8Array(s.length); for(let i=0;i<s.length;i++)a[i]=s.charCodeAt(i); return a; }
@@ -310,8 +355,10 @@ function officeBadge(of){ const cls=of==="二子玉川"?"futa":of==="用賀"?"yo
 function render(){
   reconcile();
   if(viewMode==="schedule"){ renderSchedule(); return; }
+  if(viewMode==="calendar"){ renderCalendar(); return; }
   $(".layout").style.display="flex";
   $("#schedulePanel").style.display="none";
+  $("#calendarPanel").style.display="none";
   $("#addEntity").style.display="";
   const listEl=$("#entityList"); const detailEl=$("#detailPanel");
   listEl.innerHTML=""; const q=query.trim();
@@ -426,6 +473,7 @@ function render(){
 function renderSchedule(){
   $(".layout").style.display="none";
   $("#schedulePanel").style.display="block";
+  $("#calendarPanel").style.display="none";
   $("#addEntity").style.display="none";
   const panel=$("#schedulePanel");
   const from=scheduleRange==="week"?startOfWeek(scheduleAnchor):scheduleAnchor;
@@ -478,6 +526,58 @@ function renderSchedule(){
   $("#scheduleNow").onclick=()=>{ scheduleAnchor=todayKey(); render(); };
 }
 
+function renderCalendar(){
+  $(".layout").style.display="none";
+  $("#schedulePanel").style.display="none";
+  $("#calendarPanel").style.display="block";
+  $("#addEntity").style.display="none";
+  const panel=$("#calendarPanel"), monthStart=monthStartKey(calendarAnchor), monthNext=addMonths(monthStart,1), monthEnd=addDays(monthNext,-1);
+  const q=query.trim().toLowerCase();
+  const records=(state.schedule||[]).map(normalizeScheduleItem).filter(Boolean).filter(s=>s.date>=monthStart&&s.date<=monthEnd&&
+    (officeFilter==="all"||s.office===officeFilter)&&(!q||[s.user,s.helper,s.svc,s.cat,s.office].some(v=>String(v||"").toLowerCase().includes(q))));
+  const byDate=new Map();
+  records.forEach(s=>{ if(!byDate.has(s.date))byDate.set(s.date,[]); byDate.get(s.date).push(s); });
+  const weekdayNames=["月","火","水","木","金","土","日"], weekdayCounts=[0,0,0,0,0,0,0];
+  records.forEach(s=>weekdayCounts[weekdayIndexMonday(s.date)]++);
+  const maxWeekday=Math.max(1,...weekdayCounts), total=records.length;
+  const busiestIndex=weekdayCounts.indexOf(Math.max(...weekdayCounts));
+  const weekdayHtml=weekdayNames.map((name,i)=>{ const count=weekdayCounts[i], share=total?Math.round(count/total*100):0, width=Math.round(count/maxWeekday*100);
+    return `<div class="weekday-load-item ${count&&count===maxWeekday?'peak':''}"><div class="weekday-load-name">${name}曜日</div><div class="weekday-load-value">${count}<small>件</small></div><div class="weekday-load-track"><div class="weekday-load-fill" style="width:${width}%"></div></div><div class="weekday-load-share">全体の${share}%</div></div>`; }).join("");
+  const offset=weekdayIndexMonday(monthStart), dayCount=keyToDate(monthEnd).getDate(), maxDay=Math.max(1,...[...byDate.values()].map(items=>items.length));
+  const blanks=Array.from({length:offset},()=>`<div class="calendar-blank"></div>`).join("");
+  const dayCells=Array.from({length:dayCount},(_,idx)=>{
+    const date=monthStart.slice(0,8)+("0"+(idx+1)).slice(-2), items=byDate.get(date)||[], count=items.length;
+    const level=count?Math.max(1,Math.ceil(count/maxDay*4)):0, weekday=weekdayName(date), dayClass=weekday==="日"?" sun":weekday==="土"?" sat":"";
+    const users=new Set(items.map(s=>s.user).filter(Boolean)).size;
+    return `<div class="calendar-day heat-${level}" data-date="${date}" data-count="${count}" title="${esc(fmtFullDate(date))}：${count}件"><span class="calendar-date${dayClass}">${idx+1}</span>${count?`<span class="calendar-count">${count}<small>件</small></span><div class="calendar-people">利用者 ${users}名</div>`:""}</div>`;
+  }).join("");
+  const monthDate=keyToDate(monthStart), monthLabel=`${monthDate.getFullYear()}年${monthDate.getMonth()+1}月`;
+  panel.innerHTML=`<div class="calendar-shell">
+    <div class="calendar-toolbar"><div class="calendar-nav"><button class="btn" id="calendarPrev">← 前月</button><span class="calendar-title">${monthLabel}</span><button class="btn" id="calendarNext">翌月 →</button><button class="btn" id="calendarNow">今月へ戻る</button></div><span class="hint">日付を押すと予定表を開きます</span></div>
+    <div class="weekday-load">${weekdayHtml}</div>
+    <div class="calendar-card"><div class="calendar-scroll"><div class="calendar-grid">
+      ${weekdayNames.map((name,i)=>`<div class="calendar-weekday ${i===5?'sat':i===6?'sun':''}">${name}</div>`).join("")}${blanks}${dayCells}
+    </div></div><div class="calendar-legend"><span>少ない</span><span class="heat-swatch" style="background:#eff6ff"></span><span class="heat-swatch" style="background:#dbeafe"></span><span class="heat-swatch" style="background:#bfdbfe"></span><span class="heat-swatch" style="background:#93c5fd"></span><span>多い</span></div></div>
+  </div>`;
+  const userCount=new Set(records.map(s=>s.office+"|"+s.user)).size;
+  const busiestDay=[...byDate.entries()].sort((a,b)=>b[1].length-a[1].length||a[0].localeCompare(b[0]))[0];
+  $("#summary").innerHTML=`
+    <div class="sumcard"><span class="si">📅</span><div><div class="sv">${total}</div><div class="sl">月間訪問数</div></div></div>
+    <div class="sumcard"><span class="si">📊</span><div><div class="sv">${total?weekdayNames[busiestIndex]+"曜":"—"}</div><div class="sl">最も多い曜日</div></div></div>
+    <div class="sumcard"><span class="si">🔥</span><div><div class="sv">${busiestDay?fmtPeriodDate(busiestDay[0]):"—"}</div><div class="sl">最も多い日${busiestDay?`（${busiestDay[1].length}件）`:""}</div></div></div>
+    <div class="sumcard"><span class="si">🏠</span><div><div class="sv">${userCount}</div><div class="sl">利用者数</div></div></div>`;
+  $("#stats").innerHTML=`<span class="hint">色が濃い日ほど訪問が集中しています。上段で曜日別の件数と割合を確認できます。</span>`;
+  $("#period").textContent=`📅 ${monthLabel}`;
+  $("#calendarPrev").onclick=()=>{ calendarAnchor=addMonths(monthStart,-1); render(); };
+  $("#calendarNext").onclick=()=>{ calendarAnchor=addMonths(monthStart,1); render(); };
+  $("#calendarNow").onclick=()=>{ calendarAnchor=todayKey(); render(); };
+  panel.querySelectorAll(".calendar-day[data-count]").forEach(cell=>{ if(+cell.dataset.count>0)cell.onclick=()=>{
+    scheduleAnchor=cell.dataset.date; scheduleRange="today"; viewMode="schedule";
+    $("#viewSeg .active").classList.remove("active"); $("#viewSeg [data-view='schedule']").classList.add("active");
+    $("#viewHint").textContent="訪問予定を日付・曜日・時間順に確認"; render();
+  }; });
+}
+
 function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),1800); }
 function pickOffice(title){
   return new Promise(res=>{
@@ -500,6 +600,9 @@ function dateToKey(d){ return d.getFullYear()+"/"+("0"+(d.getMonth()+1)).slice(-
 function keyToDate(key){ const m=String(key||"").match(/(\d{4})\/(\d{2})\/(\d{2})/); return m?new Date(+m[1],+m[2]-1,+m[3],12):new Date(); }
 function todayKey(){ return dateToKey(new Date()); }
 function addDays(key,n){ const d=keyToDate(key); d.setDate(d.getDate()+n); return dateToKey(d); }
+function monthStartKey(key){ const d=keyToDate(key); d.setDate(1); return dateToKey(d); }
+function addMonths(key,n){ const d=keyToDate(key); d.setDate(1); d.setMonth(d.getMonth()+n); return dateToKey(d); }
+function weekdayIndexMonday(key){ return (keyToDate(key).getDay()+6)%7; }
 function startOfWeek(key){ const d=keyToDate(key), offset=(d.getDay()+6)%7; d.setDate(d.getDate()-offset); return dateToKey(d); }
 function weekdayName(key){ return ["日","月","火","水","木","金","土"][keyToDate(key).getDay()]; }
 function fmtFullDate(key,withWeekday=true){ const d=keyToDate(key), base=`${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`; return withWeekday?`${base}（${weekdayName(key)}）`:base; }
@@ -604,6 +707,7 @@ async function importScheduleCsv(file){
     state.schedule=(state.schedule||[]).map(normalizeScheduleItem).filter(Boolean).filter(s=>!(s.office===of&&s.date>=minDate&&s.date<=maxDate));
     state.schedule.push(...scheduleRows.map(normalizeScheduleItem).filter(Boolean));
     if(scheduleAnchor<minDate||scheduleAnchor>maxDate)scheduleAnchor=minDate;
+    if(calendarAnchor<minDate||calendarAnchor>maxDate)calendarAnchor=minDate;
   }
   save(); render();
   const timeNote=scheduleRows.some(s=>s.start)?"":"・訪問時間の列は未取得";
@@ -633,8 +737,8 @@ function download(name,content){ const bl=new Blob([content],{type:"text/plain;c
 function bindControls(){
   $("#viewSeg").addEventListener("click",e=>{ const btn=e.target.closest("button"); if(!btn)return;
     $("#viewSeg .active").classList.remove("active"); btn.classList.add("active"); viewMode=btn.dataset.view;
-    $("#viewHint").textContent = viewMode==="user" ? "利用者ごとに担当ヘルパーを組み換え" : viewMode==="helper" ? "ヘルパーごとに担当利用者を組み換え" : "訪問予定を日付・曜日・時間順に確認";
-    $("#search").placeholder=viewMode==="schedule"?"名前・サービスで検索":"名前で検索";
+    $("#viewHint").textContent = viewMode==="user" ? "利用者ごとに担当ヘルパーを組み換え" : viewMode==="helper" ? "ヘルパーごとに担当利用者を組み換え" : viewMode==="schedule" ? "訪問予定を日付・曜日・時間順に確認" : "訪問件数の集中を月・曜日別に確認";
+    $("#search").placeholder=(viewMode==="schedule"||viewMode==="calendar")?"名前・サービスで検索":"名前で検索";
     render(); });
   $("#officeSeg").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b)return;
     $("#officeSeg .active").classList.remove("active"); b.classList.add("active"); officeFilter=b.dataset.of; render(); });
