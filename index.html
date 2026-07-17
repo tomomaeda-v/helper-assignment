@@ -428,7 +428,7 @@ function bindControls(){
     $("#officeSeg .active").classList.remove("active"); b.classList.add("active"); officeFilter=b.dataset.of; render(); });
   $("#search").addEventListener("input",e=>{ query=e.target.value; render(); });
   $("#addEntity").onclick=addEntity;
-  $("#resetBtn").onclick=()=>{ if(confirm("初期割り当てに戻します。取り込んだシフトCSVのデータや手動での変更もすべて消えます。よろしいですか？")){ state=seedState(); save(); render(); toast("初期状態に戻しました（CSVデータもクリア）"); } };
+  $("#resetBtn").onclick=()=>{ if(confirm("すべてのデータ（取り込んだCSV・手動での変更・初期割り当て）を消して、空の状態にします。よろしいですか？")){ state={helpers:[],users:[],assignments:[]}; save(); render(); toast("すべてのデータを消去しました"); } };
   $("#exportJson").onclick=()=>{ download("担当割振り.json", JSON.stringify(state,null,2)); toast("JSONを書き出しました"); };
   $("#exportCsv").onclick=()=>{ const rows=[["事業所","ヘルパー","利用者","訪問回数","サービス分類","主なサービス名"]];
     state.assignments.slice().sort((a,b)=>a.office.localeCompare(b.office,"ja")||a.user.localeCompare(b.user,"ja"))
