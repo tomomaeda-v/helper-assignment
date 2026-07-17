@@ -114,13 +114,10 @@
   .card .v{ font-weight:700; color:var(--accent); }
   .cat{ display:inline-block; padding:1px 7px; border-radius:999px; background:#eef2f7; }
   .visit-dates{ margin-top:8px; padding-top:7px; border-top:1px dashed var(--line); }
-  .visit-dates-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:5px; }
-  .date-label{ color:var(--sub); font-size:11px; font-weight:700; }
+  .date-label{ color:var(--sub); font-size:11px; font-weight:700; margin-bottom:5px; }
   .date-list{ display:flex; flex-wrap:wrap; gap:4px; }
   .date-chip{ display:inline-flex; align-items:center; padding:2px 7px; border-radius:999px; background:var(--accent-soft); color:var(--accent); font-size:10.5px; font-weight:700; }
   .date-none{ color:#9aa4b2; font-size:11px; }
-  .date-edit-btn{ border:1px solid var(--line); background:#fff; color:var(--sub); border-radius:999px; padding:2px 8px; font-size:10.5px; cursor:pointer; }
-  .date-edit-btn:hover{ border-color:var(--accent); color:var(--accent); background:#f8fbff; }
   .suggest-btn{ border:none; background:var(--unassigned-soft); color:var(--unassigned); font-size:11px; font-weight:700; padding:5px 12px; border-radius:999px; cursor:pointer; margin-top:7px; transition:all .12s; }
   .suggest-btn:hover{ background:var(--unassigned); color:#fff; }
   .empty{ text-align:center; color:#c3ccd8; font-size:12px; padding:18px 4px; }
@@ -326,11 +323,10 @@ function render(){
     sd.items.forEach(a=>{ const c=document.createElement("div"); c.className="card"+(a[other]==="未配置"?" un":""); c.draggable=true; c.dataset.id=a.id;
       const sug=sd.isUn?`<button class="suggest-btn" data-sug="${a.id}">💡 空いている人に割り当て</button>`:"";
       const dates=normalizeVisitDates(a.dates);
-      const dateList=dates.length ? dates.map(d=>`<span class="date-chip">${fmtVisitDate(d)}</span>`).join("") : `<span class="date-none">未登録</span>`;
-      const dateBlock=`<div class="visit-dates"><div class="visit-dates-head"><span class="date-label">訪問日</span><button type="button" class="date-edit-btn" data-date-id="${a.id}">編集</button></div><div class="date-list">${dateList}</div></div>`;
+      const dateList=dates.length ? dates.map(d=>`<span class="date-chip">${fmtVisitDate(d)}</span>`).join("") : `<span class="date-none">CSVから未取得</span>`;
+      const dateBlock=`<div class="visit-dates"><div class="date-label">訪問日（CSV）</div><div class="date-list">${dateList}</div></div>`;
       c.innerHTML=`<span class="grip" title="ドラッグで移動できます">⠿</span><div class="body"><div class="u">${a[other]}</div><div class="meta"><span class="v">${a.visits}回</span>${a.cat?`<span class="cat">${a.cat}</span>`:""}</div>${dateBlock}${sug}</div>`;
       cardsEl.appendChild(c); });
-    cardsEl.querySelectorAll(".date-edit-btn").forEach(btn=>btn.onclick=ev=>{ ev.preventDefault(); ev.stopPropagation(); editVisitDates(+btn.dataset.dateId); });
     cardsEl.querySelectorAll(".suggest-btn").forEach(btn=>btn.onclick=()=>{
       const a=state.assignments.find(x=>x.id===+btn.dataset.sug); if(!a)return;
       const cands=(dim==="helper"?state.helpers:state.users).filter(c2=>c2.office===a.office&&c2.name!=="未配置");
@@ -399,24 +395,10 @@ function normalizeVisitDates(values){
   const src=Array.isArray(values)?values:[];
   return [...new Set(src.map(normDate).filter(Boolean))].sort();
 }
-function parseVisitDatesInput(value){
-  const parts=String(value||"").split(/[,、;；\s]+/).map(s=>s.trim()).filter(Boolean);
-  const invalid=parts.filter(s=>!normDate(s));
-  return {dates:normalizeVisitDates(parts),invalid};
-}
-function includePeriodDates(dates){
-  const ds=normalizeVisitDates(dates); if(!ds.length)return;
-  const p=state.period||{};
-  state.period={from:(p.from&&p.from<ds[0])?p.from:ds[0],to:(p.to&&p.to>ds[ds.length-1])?p.to:ds[ds.length-1]};
-}
-function editVisitDates(id){
-  const a=state.assignments.find(x=>x.id===id); if(!a)return;
-  const raw=prompt("訪問日を入力してください（例：2026/7/1, 2026/7/8）\n複数日はカンマ区切り、すべて消す場合は空欄にします。",normalizeVisitDates(a.dates).join(", "));
-  if(raw===null)return;
-  const parsed=parseVisitDatesInput(raw);
-  if(parsed.invalid.length){ alert(`日付の形式を確認してください：${parsed.invalid.join("、")}`); return; }
-  a.dates=parsed.dates; includePeriodDates(a.dates);
-  save(); render(); toast("訪問日を更新しました");
+
+function headerIndex(header,candidates){
+  for(const name of candidates){ const i=header.indexOf(name); if(i>=0)return i; }
+  return -1;
 }
 
 function parseCSV(text){
@@ -439,11 +421,12 @@ async function importScheduleCsv(file){
   if(!text.includes("利用者名")){ toast("対応していないCSV形式です"); return; }
   const rows=parseCSV(text);
   if(rows.length<2){ toast("CSVの内容を読み取れませんでした"); return; }
-  const header=rows[0];
-  const iUser=header.indexOf("利用者名"), iHelper=header.indexOf("スタッフ名"),
-        iCat=header.indexOf("サービス分類"), iSvc=header.indexOf("サービス名"),
-        iDate=header.indexOf("サービス日付");
+  const header=rows[0].map(h=>String(h||"").replace(/^﻿/,"").trim());
+  const iUser=headerIndex(header,["利用者名","利用者"]), iHelper=headerIndex(header,["スタッフ名","ヘルパー名","担当者名"]),
+        iCat=headerIndex(header,["サービス分類"]), iSvc=headerIndex(header,["サービス名","主なサービス名"]),
+        iDate=headerIndex(header,["サービス日付","サービス日","訪問日","提供日","実施日"]);
   if(iUser<0||iHelper<0){ toast("対応していないCSV形式です"); return; }
+  if(iDate<0){ toast("CSVに訪問日の列が見つかりません"); return; }
   let of=officeFilter;
   if(of==="all"){ of=await pickOffice("このCSVはどちらの事業所のデータですか？"); if(!of)return; }
   const map=new Map();
@@ -475,13 +458,10 @@ function addCard(e){
   const dim=viewMode; const other=dim==="helper"?"user":"helper";
   const label = other==="helper" ? "担当ヘルパー" : "利用者";
   const name=prompt(`「${e.name}」に追加する${label}名を入力してください`); if(!name)return;
-  const rawDates=prompt("訪問日を入力してください（例：2026/7/1, 2026/7/8）\n複数日はカンマ区切り、未定なら空欄にします。",""); if(rawDates===null)return;
-  const parsed=parseVisitDatesInput(rawDates);
-  if(parsed.invalid.length){ alert(`日付の形式を確認してください：${parsed.invalid.join("、")}`); return; }
-  let v=prompt("訪問回数（数字。未定なら0）",String(parsed.dates.length)); if(v===null)return; v=parseInt(v,10); if(isNaN(v)||v<0) v=0;
+  let v=prompt("訪問回数（数字。未定なら0）","0"); if(v===null)return; v=parseInt(v,10); if(isNaN(v)||v<0) v=0;
   const id=(state.assignments.reduce((m,a)=>Math.max(m,a.id),0)||0)+1;
-  const a={id, office:e.office, visits:v, cat:"", svc:"", dates:parsed.dates}; a[dim]=e.name; a[other]=name;
-  state.assignments.push(a); includePeriodDates(a.dates); save(); render(); toast(`${e.name} に ${name} を追加`);
+  const a={id, office:e.office, visits:v, cat:"", svc:"", dates:[]}; a[dim]=e.name; a[other]=name;
+  state.assignments.push(a); save(); render(); toast(`${e.name} に ${name} を追加`);
 }
 async function addEntity(){
   const isH=viewMode==="helper"; const label=isH?"ヘルパー":"利用者";
