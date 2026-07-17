@@ -159,10 +159,8 @@
       <button class="btn" id="addEntity">＋列を追加</button>
       <button class="btn" id="exportCsv">CSV出力</button>
       <button class="btn primary" id="exportJson">保存(JSON)</button>
-      <button class="btn" id="importJson">読込</button>
       <button class="btn" id="importSchedule">シフトCSV取込</button>
       <button class="btn" id="resetBtn">初期化</button>
-      <input type="file" id="fileInput" accept=".json" style="display:none">
       <input type="file" id="scheduleFileInput" accept=".csv" style="display:none">
     </div>
   </div>
@@ -179,7 +177,7 @@
   <div class="entity-list" id="entityList"></div>
   <div class="detail-panel" id="detailPanel"></div>
 </div>
-<footer>変更は暗号化してこの端末のブラウザに自動保存されます。別端末で使う場合は「保存(JSON)」で書き出し、「読込」で取り込めます。</footer>
+<footer>変更は暗号化してこの端末のブラウザに自動保存されます。「保存(JSON)」でデータをファイルに書き出せます。</footer>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -435,10 +433,6 @@ function bindControls(){
       .forEach(a=>rows.push([a.office,a.helper,a.user,a.visits,a.cat,a.svc]));
     const csv="﻿"+rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\r\n");
     download("担当割振り.csv", csv); toast("CSVを書き出しました"); };
-  $("#importJson").onclick=()=>$("#fileInput").click();
-  $("#fileInput").onchange=e=>{ const f=e.target.files[0]; if(!f)return; const r=new FileReader();
-    r.onload=()=>{ try{ const d=JSON.parse(r.result); if(d.helpers&&d.assignments){ state=ensureUsers(d); save(); render(); toast("読込みました"); } else toast("形式が不正です"); }catch(err){ toast("読込みに失敗しました"); } };
-    r.readAsText(f); e.target.value=""; };
   $("#importSchedule").onclick=()=>$("#scheduleFileInput").click();
   $("#scheduleFileInput").onchange=e=>{ const f=e.target.files[0]; if(!f)return; importScheduleCsv(f); e.target.value=""; };
 }
