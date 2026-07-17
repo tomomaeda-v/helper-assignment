@@ -630,6 +630,13 @@ function normalizeScheduleItem(s){
   if(!s)return null; const date=normDate(s.date||s.visitDate||s.serviceDate); if(!date)return null;
   return {office:String(s.office||""),user:String(s.user||"未配置"),helper:String(s.helper||"未配置"),date,start:normTime(s.start),end:normTime(s.end),cat:String(s.cat||""),svc:String(s.svc||"")};
 }
+function preferredCalendarDate(){
+  const q=query.trim().toLowerCase(), today=keyToDate(todayKey()).getTime();
+  const dates=(state.schedule||[]).map(normalizeScheduleItem).filter(Boolean).filter(s=>(officeFilter==="all"||s.office===officeFilter)&&
+    (!q||[s.user,s.helper,s.svc,s.cat,s.office].some(v=>String(v||"").toLowerCase().includes(q)))).map(s=>s.date);
+  if(!dates.length)return todayKey();
+  return dates.reduce((best,date)=>Math.abs(keyToDate(date).getTime()-today)<Math.abs(keyToDate(best).getTime()-today)?date:best,dates[0]);
+}
 function assignmentVisitSlots(a){
   const slots=(state.schedule||[]).map(normalizeScheduleItem).filter(Boolean)
     .filter(s=>s.office===a.office&&s.user===a.user&&s.helper===a.helper)
@@ -745,12 +752,13 @@ function download(name,content){ const bl=new Blob([content],{type:"text/plain;c
 function bindControls(){
   $("#viewSeg").addEventListener("click",e=>{ const btn=e.target.closest("button"); if(!btn)return;
     $("#viewSeg .active").classList.remove("active"); btn.classList.add("active"); viewMode=btn.dataset.view;
+    if(viewMode==="calendar")calendarAnchor=preferredCalendarDate();
     $("#viewHint").textContent = viewMode==="user" ? "利用者ごとに担当ヘルパーを組み換え" : viewMode==="helper" ? "ヘルパーごとに担当利用者を組み換え" : viewMode==="schedule" ? "訪問予定を日付・曜日・時間順に確認" : "訪問件数の集中を月・曜日別に確認";
     $("#search").placeholder=(viewMode==="schedule"||viewMode==="calendar")?"名前・サービスで検索":"名前で検索";
     render(); });
   $("#officeSeg").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b)return;
-    $("#officeSeg .active").classList.remove("active"); b.classList.add("active"); officeFilter=b.dataset.of; render(); });
-  $("#search").addEventListener("input",e=>{ query=e.target.value; render(); });
+    $("#officeSeg .active").classList.remove("active"); b.classList.add("active"); officeFilter=b.dataset.of; if(viewMode==="calendar")calendarAnchor=preferredCalendarDate(); render(); });
+  $("#search").addEventListener("input",e=>{ query=e.target.value; if(viewMode==="calendar")calendarAnchor=preferredCalendarDate(); render(); });
   $("#addEntity").onclick=addEntity;
   $("#resetBtn").onclick=()=>{ if(confirm("すべてのデータ（取り込んだCSV・手動での変更・初期割り当て）を消して、空の状態にします。よろしいですか？")){ state={helpers:[],users:[],assignments:[],schedule:[]}; save(); render(); toast("すべてのデータを消去しました"); } };
   $("#exportJson").onclick=()=>{ download("担当割振り.json", JSON.stringify(state,null,2)); toast("JSONを書き出しました"); };
