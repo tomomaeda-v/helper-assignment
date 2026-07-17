@@ -262,7 +262,6 @@
         <button data-of="用賀">用賀</button>
         <button data-of="二子玉川">二子玉川</button>
       </div>
-      <button class="btn" id="addEntity">＋列を追加</button>
       <button class="btn" id="exportCsv">CSV出力</button>
       <button class="btn primary" id="exportJson">保存(JSON)</button>
       <button class="btn" id="importSchedule">シフトCSV取込</button>
@@ -306,9 +305,6 @@ let SEED=null, CK=null, state=null, officeFilter="all", query="", viewMode="user
 let scheduleRange="today", scheduleAnchor=todayKey();
 let calendarAnchor=todayKey();
 const $ = s=>document.querySelector(s);
-function setAddEntityVisible(visible){
-  const button=$("#addEntity"); button.style.display=""; button.style.visibility=visible?"visible":"hidden"; button.style.pointerEvents=visible?"":"none"; button.tabIndex=visible?0:-1;
-}
 
 function b64ToBytes(b){ const s=atob(b); const a=new Uint8Array(s.length); for(let i=0;i<s.length;i++)a[i]=s.charCodeAt(i); return a; }
 function bytesToB64(a){ let s=""; const u=new Uint8Array(a); for(let i=0;i<u.length;i++)s+=String.fromCharCode(u[i]); return btoa(s); }
@@ -370,7 +366,6 @@ function render(){
   $(".layout").style.display="flex";
   $("#schedulePanel").style.display="none";
   $("#calendarPanel").style.display="none";
-  setAddEntityVisible(true);
   const listEl=$("#entityList"); const detailEl=$("#detailPanel");
   listEl.innerHTML=""; const q=query.trim();
   const dim = viewMode;
@@ -485,7 +480,6 @@ function renderSchedule(){
   $(".layout").style.display="none";
   $("#schedulePanel").style.display="block";
   $("#calendarPanel").style.display="none";
-  setAddEntityVisible(false);
   const panel=$("#schedulePanel");
   const from=scheduleRange==="week"?startOfWeek(scheduleAnchor):scheduleAnchor;
   const to=scheduleRange==="week"?addDays(from,6):from;
@@ -542,7 +536,6 @@ function renderCalendar(){
   $(".layout").style.display="none";
   $("#schedulePanel").style.display="none";
   $("#calendarPanel").style.display="block";
-  setAddEntityVisible(false);
   const panel=$("#calendarPanel"), monthStart=monthStartKey(calendarAnchor), monthNext=addMonths(monthStart,1), monthEnd=addDays(monthNext,-1);
   const q=query.trim().toLowerCase();
   const records=(state.schedule||[]).map(normalizeScheduleItem).filter(Boolean).filter(s=>s.date>=monthStart&&s.date<=monthEnd&&
@@ -741,14 +734,6 @@ function addCard(e){
   const a={id, office:e.office, visits:v, cat:"", svc:"", dates:[]}; a[dim]=e.name; a[other]=name;
   state.assignments.push(a); save(); render(); toast(`${e.name} に ${name} を追加`);
 }
-async function addEntity(){
-  const isH=viewMode==="helper"; const label=isH?"ヘルパー":"利用者";
-  const name=prompt(`追加する${label}名を入力してください`); if(!name)return;
-  let of=officeFilter; if(of==="all"){ of=await pickOffice(`「${name}」さんをどちらの事業所に追加しますか？`); if(!of)return; }
-  const arr=isH?state.helpers:state.users;
-  if(arr.some(e=>e.office===of&&e.name===name)){ toast("既に登録済みです"); return; }
-  arr.push({office:of,name}); save(); render(); toast(`${label}「${name}」を追加`);
-}
 function download(name,content){ const bl=new Blob([content],{type:"text/plain;charset=utf-8"}); const u=URL.createObjectURL(bl);
   const a=document.createElement("a"); a.href=u; a.download=name; a.click(); URL.revokeObjectURL(u); }
 
@@ -762,7 +747,6 @@ function bindControls(){
   $("#officeSeg").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b)return;
     $("#officeSeg .active").classList.remove("active"); b.classList.add("active"); officeFilter=b.dataset.of; if(viewMode==="calendar")calendarAnchor=preferredCalendarDate(); render(); });
   $("#search").addEventListener("input",e=>{ query=e.target.value; if(viewMode==="calendar")calendarAnchor=preferredCalendarDate(); render(); });
-  $("#addEntity").onclick=addEntity;
   $("#resetBtn").onclick=()=>{ if(confirm("すべてのデータ（取り込んだCSV・手動での変更・初期割り当て）を消して、空の状態にします。よろしいですか？")){ state={helpers:[],users:[],assignments:[],schedule:[]}; save(); render(); toast("すべてのデータを消去しました"); } };
   $("#exportJson").onclick=()=>{ download("担当割振り.json", JSON.stringify(state,null,2)); toast("JSONを書き出しました"); };
   $("#exportCsv").onclick=()=>{ const rows=[["事業所","ヘルパー","利用者","訪問回数","訪問日一覧","サービス分類","主なサービス名"]];
