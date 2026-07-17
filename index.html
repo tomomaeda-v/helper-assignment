@@ -189,16 +189,19 @@
   .calendar-date{ font-weight:800; font-variant-numeric:tabular-nums; }
   .calendar-date.sun{ color:#dc2626; }
   .calendar-date.sat{ color:#2563eb; }
-  .calendar-count{ display:block; font-family:var(--font-head); font-size:20px; font-weight:900; color:#1d4ed8; margin-top:12px; }
-  .calendar-count small{ font-family:"Noto Sans JP",sans-serif; font-size:10px; margin-left:2px; }
+  .calendar-metrics{ margin-top:8px; display:grid; gap:2px; }
+  .calendar-count,.calendar-actual{ display:flex; align-items:baseline; gap:3px; font-family:var(--font-head); font-size:17px; font-weight:900; font-variant-numeric:tabular-nums; }
+  .calendar-count{ color:#1d4ed8; }
+  .calendar-actual{ color:#047857; }
+  .calendar-count small,.calendar-actual small{ font-family:"Noto Sans JP",sans-serif; font-size:9px; }
+  .metric-label{ min-width:24px; font-family:"Noto Sans JP",sans-serif; font-size:9px; font-weight:700; color:#64748b; }
+  .actual-missing{ font-family:"Noto Sans JP",sans-serif; font-size:10px; color:#94a3b8; font-weight:700; }
   .calendar-people{ color:var(--sub); font-size:10px; margin-top:2px; }
   .calendar-legend{ display:flex; align-items:center; justify-content:flex-end; gap:5px; padding:10px 13px; color:var(--sub); font-size:10px; background:#f8fafc; }
   .heat-swatch{ width:18px; height:10px; border-radius:3px; }
   .suggest-btn{ border:none; background:var(--unassigned-soft); color:var(--unassigned); font-size:11px; font-weight:700; padding:5px 12px; border-radius:999px; cursor:pointer; margin-top:7px; transition:all .12s; }
   .suggest-btn:hover{ background:var(--unassigned); color:#fff; }
   .empty{ text-align:center; color:#c3ccd8; font-size:12px; padding:18px 4px; }
-  .add-card{ width:100%; margin-top:2px; padding:9px; border:1.5px dashed #d5dce5; border-radius:12px; background:transparent; color:var(--sub); font-size:12px; cursor:pointer; transition:all .12s; }
-  .add-card:hover{ background:#fff; color:var(--accent); border-color:var(--accent); }
   footer{ text-align:center; color:var(--sub); font-size:11px; padding:12px; }
   .toast{ position:fixed; bottom:22px; left:50%; transform:translateX(-50%); background:rgba(17,24,39,.92); backdrop-filter:blur(6px); color:#fff; padding:10px 18px; border-radius:999px; font-size:12.5px; opacity:0; transition:opacity .25s; pointer-events:none; z-index:50; box-shadow:0 10px 30px rgba(2,6,23,.35); }
   .toast.show{ opacity:1; }
@@ -420,7 +423,7 @@ function render(){
     detailEl.innerHTML=`<div class="detail-head"><div class="dname"><span class="davatar">${dinit}</span>${officeBadge(e.office)} ${e.name}</div>
       <div class="dmeta"><span class="load">${colLabel}</span><span>訪問 ${sd.visitsSum}回</span>${unTag}</div></div><div class="detail-cards"></div>`;
     const cardsEl=detailEl.querySelector(".detail-cards");
-    if(sd.items.length===0){ cardsEl.innerHTML=`<div class="empty">担当なし（下のボタンで追加／ここにドロップ）</div>`; }
+    if(sd.items.length===0){ cardsEl.innerHTML=`<div class="empty">担当なし（ここにカードをドロップ）</div>`; }
     sd.items.forEach(a=>{ const c=document.createElement("div"); c.className="card"+(a[other]==="未配置"?" un":""); c.draggable=true; c.dataset.id=a.id;
       const sug=sd.isUn?`<button class="suggest-btn" data-sug="${a.id}">💡 空いている人に割り当て</button>`:"";
       const slots=assignmentVisitSlots(a);
@@ -439,9 +442,6 @@ function render(){
       a[dim]=best.name; selected={office:best.office,name:best.name};
       save(); render(); toast(`${a[other]} → ${best.name} に割り当てました`);
     });
-    const addBtn=document.createElement("button"); addBtn.className="add-card";
-    addBtn.textContent="＋ "+(other==="helper"?"ヘルパー":"利用者")+"を追加";
-    addBtn.onclick=()=>addCard(e); cardsEl.appendChild(addBtn);
     detailEl.addEventListener("dragover",ev=>{ ev.preventDefault(); detailEl.classList.add("drop-target"); });
     detailEl.addEventListener("dragleave",ev=>{ if(!detailEl.contains(ev.relatedTarget)) detailEl.classList.remove("drop-target"); });
     detailEl.addEventListener("drop",ev=>{ ev.preventDefault(); detailEl.classList.remove("drop-target");
@@ -553,8 +553,9 @@ function renderCalendar(){
   const dayCells=Array.from({length:dayCount},(_,idx)=>{
     const date=monthStart.slice(0,8)+("0"+(idx+1)).slice(-2), items=byDate.get(date)||[], count=items.length;
     const level=count?Math.max(1,Math.ceil(count/maxDay*4)):0, weekday=weekdayName(date), dayClass=weekday==="日"?" sun":weekday==="土"?" sat":"";
-    const users=new Set(items.map(s=>s.user).filter(Boolean)).size;
-    return `<div class="calendar-day heat-${level}" data-date="${date}" data-count="${count}" title="${esc(fmtFullDate(date))}：${count}件"><span class="calendar-date${dayClass}">${idx+1}</span>${count?`<span class="calendar-count">${count}<small>件</small></span><div class="calendar-people">利用者 ${users}名</div>`:""}</div>`;
+    const users=new Set(items.map(s=>s.user).filter(Boolean)).size, actualKnown=items.some(s=>s.actual!==null), actualCount=items.filter(s=>s.actual===true).length;
+    const actualTitle=actualKnown?`${actualCount}件`:"未取得";
+    return `<div class="calendar-day heat-${level}" data-date="${date}" data-count="${count}" title="${esc(fmtFullDate(date))}：予定${count}件／実績${actualTitle}"><span class="calendar-date${dayClass}">${idx+1}</span>${count?`<div class="calendar-metrics"><div class="calendar-count"><span class="metric-label">予定</span>${count}<small>件</small></div><div class="calendar-actual"><span class="metric-label">実績</span>${actualKnown?`${actualCount}<small>件</small>`:`<span class="actual-missing">未取得</span>`}</div></div><div class="calendar-people">利用者 ${users}名</div>`:""}</div>`;
   }).join("");
   const monthDate=keyToDate(monthStart), monthLabel=`${monthDate.getFullYear()}年${monthDate.getMonth()+1}月`;
   panel.innerHTML=`<div class="calendar-shell">
@@ -564,14 +565,14 @@ function renderCalendar(){
       ${weekdayNames.map((name,i)=>`<div class="calendar-weekday ${i===5?'sat':i===6?'sun':''}">${name}</div>`).join("")}${blanks}${dayCells}
     </div></div><div class="calendar-legend"><span>少ない</span><span class="heat-swatch" style="background:#eff6ff"></span><span class="heat-swatch" style="background:#dbeafe"></span><span class="heat-swatch" style="background:#bfdbfe"></span><span class="heat-swatch" style="background:#93c5fd"></span><span>多い</span></div></div>
   </div>`;
-  const userCount=new Set(records.map(s=>s.office+"|"+s.user)).size;
+  const userCount=new Set(records.map(s=>s.office+"|"+s.user)).size, monthActualKnown=records.some(s=>s.actual!==null), monthActualTotal=records.filter(s=>s.actual===true).length;
   const busiestDay=[...byDate.entries()].sort((a,b)=>b[1].length-a[1].length||a[0].localeCompare(b[0]))[0];
   $("#summary").innerHTML=`
-    <div class="sumcard"><span class="si">📅</span><div><div class="sv">${total}</div><div class="sl">月間訪問数</div></div></div>
+    <div class="sumcard"><span class="si">📅</span><div><div class="sv">${total}</div><div class="sl">月間予定数</div></div></div>
     <div class="sumcard"><span class="si">📊</span><div><div class="sv">${total?weekdayNames[busiestIndex]+"曜":"—"}</div><div class="sl">最も多い曜日</div></div></div>
     <div class="sumcard"><span class="si">🔥</span><div><div class="sv">${busiestDay?fmtPeriodDate(busiestDay[0]):"—"}</div><div class="sl">最も多い日${busiestDay?`（${busiestDay[1].length}件）`:""}</div></div></div>
     <div class="sumcard"><span class="si">🏠</span><div><div class="sv">${userCount}</div><div class="sl">利用者数</div></div></div>`;
-  $("#stats").innerHTML=`<span class="hint">色が濃い日ほど訪問が集中しています。上段で曜日別の件数と割合を確認できます。</span>`;
+  $("#stats").innerHTML=`<span>月間実績 <b>${monthActualKnown?monthActualTotal:"—"}</b>${monthActualKnown?"件":""}</span><span class="hint">色が濃い日ほど訪問が集中しています。上段で曜日別の件数と割合を確認できます。</span>`;
   $("#period").textContent=`📅 ${monthLabel}`;
   $("#calendarPrev").onclick=()=>{ calendarAnchor=addMonths(monthStart,-1); render(); };
   $("#calendarNext").onclick=()=>{ calendarAnchor=addMonths(monthStart,1); render(); };
@@ -622,9 +623,23 @@ function timeRange(value){
   const found=[...String(value??"").matchAll(/(\d{1,2})\s*[:：時]\s*(\d{1,2})/g)].map(m=>normTime(`${m[1]}:${m[2]}`)).filter(Boolean);
   return {start:found[0]||"",end:found[1]||""};
 }
+function normalizeStoredActual(value){
+  if(value===true||value===1||value==="1")return true;
+  if(value===false||value===0||value==="0")return false;
+  return null;
+}
+function parseActualFlag(value,actualStart,actualEnd,known){
+  if(!known)return null;
+  if(normTime(actualStart)||normTime(actualEnd))return true;
+  const s=String(value??"").trim(), compact=s.replace(/\s/g,"").toLowerCase();
+  if(!compact)return false;
+  if(/未|予定|なし|無し|無|取消|中止|キャンセル|非実施/.test(compact))return false;
+  if(normTime(s)||/実績|実施|済|完了|提供|確定|入力|あり|有|○|〇|true|yes/.test(compact))return true;
+  const n=Number(compact.replace(/,/g,"")); return Number.isFinite(n)?n>0:false;
+}
 function normalizeScheduleItem(s){
   if(!s)return null; const date=normDate(s.date||s.visitDate||s.serviceDate); if(!date)return null;
-  return {office:String(s.office||""),user:String(s.user||"未配置"),helper:String(s.helper||"未配置"),date,start:normTime(s.start),end:normTime(s.end),cat:String(s.cat||""),svc:String(s.svc||"")};
+  return {office:String(s.office||""),user:String(s.user||"未配置"),helper:String(s.helper||"未配置"),date,start:normTime(s.start),end:normTime(s.end),cat:String(s.cat||""),svc:String(s.svc||""),actual:normalizeStoredActual(s.actual)};
 }
 function preferredCalendarDate(){
   const q=query.trim().toLowerCase(), today=keyToDate(todayKey()).getTime();
@@ -655,6 +670,12 @@ function headerIndex(header,candidates){
   for(const name of candidates){ const i=header.indexOf(name); if(i>=0)return i; }
   return -1;
 }
+function flexibleHeaderIndex(header,candidates){
+  const exact=headerIndex(header,candidates); if(exact>=0)return exact;
+  const normalized=header.map(h=>String(h||"").replace(/\s/g,""));
+  for(const name of candidates){ const target=String(name).replace(/\s/g,""); const i=normalized.findIndex(h=>h.includes(target)); if(i>=0)return i; }
+  return -1;
+}
 
 function parseCSV(text){
   const rows=[]; let row=[]; let field=""; let inQuotes=false;
@@ -682,9 +703,13 @@ async function importScheduleCsv(file){
         iDate=headerIndex(header,["サービス日付","サービス日","訪問日","提供日","実施日"]),
         iStart=headerIndex(header,["サービス開始時刻","サービス開始時間","開始時刻","開始時間","訪問開始時刻","訪問開始時間","提供開始時刻"]),
         iEnd=headerIndex(header,["サービス終了時刻","サービス終了時間","終了時刻","終了時間","訪問終了時刻","訪問終了時間","提供終了時刻"]),
-        iTime=headerIndex(header,["サービス時間","訪問時間","提供時間","時間帯"]);
+        iTime=headerIndex(header,["サービス時間","訪問時間","提供時間","時間帯"]),
+        iActualStart=flexibleHeaderIndex(header,["実績開始時刻","実績開始時間","実施開始時刻","実施開始時間"]),
+        iActualEnd=flexibleHeaderIndex(header,["実績終了時刻","実績終了時間","実施終了時刻","実施終了時間"]),
+        iActual=flexibleHeaderIndex(header,["実績有無","実績区分","実績状況","提供実績","サービス実績","実施状況","完了区分","実績入力","実績登録","実績件数","実績数","実績回数","実績"]);
   if(iUser<0||iHelper<0){ toast("対応していないCSV形式です"); return; }
   if(iDate<0){ toast("CSVに訪問日の列が見つかりません"); return; }
+  const hasActualColumns=iActual>=0||iActualStart>=0||iActualEnd>=0;
   let of=officeFilter;
   if(of==="all"){ of=await pickOffice("このCSVはどちらの事業所のデータですか？"); if(!of)return; }
   const map=new Map(), scheduleRows=[];
@@ -699,7 +724,8 @@ async function importScheduleCsv(file){
     const start=(iStart>=0?normTime(row[iStart]):"")||range.start;
     const end=(iEnd>=0?normTime(row[iEnd]):"")||range.end;
     const cat=(row[iCat]||"").trim(), svc=(row[iSvc]||"").trim();
-    if(visitDate)scheduleRows.push({office:of,user,helper,date:visitDate,start,end,cat,svc});
+    const actual=parseActualFlag(iActual>=0?row[iActual]:"",iActualStart>=0?row[iActualStart]:"",iActualEnd>=0?row[iActualEnd]:"",hasActualColumns);
+    if(visitDate)scheduleRows.push({office:of,user,helper,date:visitDate,start,end,cat,svc,actual});
     const key=helper+" "+user;
     if(!map.has(key)) map.set(key,{helper,user,visits:0,cat,svc,dates:[]});
     const item=map.get(key); item.visits++;
@@ -722,18 +748,10 @@ async function importScheduleCsv(file){
   }
   save(); render();
   const timeNote=scheduleRows.some(s=>s.start)?"":"・訪問時間の列は未取得";
-  toast(`CSVを取り込みました（予定${scheduleRows.length}件${timeNote}）`);
+  const actualNote=hasActualColumns?`・実績${scheduleRows.filter(s=>s.actual===true).length}件`:"・実績の列は未取得";
+  toast(`CSVを取り込みました（予定${scheduleRows.length}件${actualNote}${timeNote}）`);
 }
 
-function addCard(e){
-  const dim=viewMode; const other=dim==="helper"?"user":"helper";
-  const label = other==="helper" ? "担当ヘルパー" : "利用者";
-  const name=prompt(`「${e.name}」に追加する${label}名を入力してください`); if(!name)return;
-  let v=prompt("訪問回数（数字。未定なら0）","0"); if(v===null)return; v=parseInt(v,10); if(isNaN(v)||v<0) v=0;
-  const id=(state.assignments.reduce((m,a)=>Math.max(m,a.id),0)||0)+1;
-  const a={id, office:e.office, visits:v, cat:"", svc:"", dates:[]}; a[dim]=e.name; a[other]=name;
-  state.assignments.push(a); save(); render(); toast(`${e.name} に ${name} を追加`);
-}
 function download(name,content){ const bl=new Blob([content],{type:"text/plain;charset=utf-8"}); const u=URL.createObjectURL(bl);
   const a=document.createElement("a"); a.href=u; a.download=name; a.click(); URL.revokeObjectURL(u); }
 
