@@ -493,7 +493,7 @@ function normDate(s){ const m=String(s||"").trim().match(/^(\d{4})[\/\-年](\d{1
   if(dt.getUTCFullYear()!==y||dt.getUTCMonth()!==mo-1||dt.getUTCDate()!==d)return null;
   return m[1]+"/"+("0"+m[2]).slice(-2)+"/"+("0"+m[3]).slice(-2); }
 function fmtPeriodDate(s){ const m=s.match(/(\d{4})\/(\d{2})\/(\d{2})/); return m? `${+m[2]}月${+m[3]}日` : s; }
-function fmtVisitDate(s){ const m=String(s||"").match(/(\d{4})\/(\d{2})\/(\d{2})/); return m? `${+m[1]}/${+m[2]}/${+m[3]}` : s; }
+function fmtVisitDate(s){ const m=String(s||"").match(/(\d{4})\/(\d{2})\/(\d{2})/); return m? `${+m[1]}/${+m[2]}/${+m[3]}（${weekdayName(`${m[1]}/${m[2]}/${m[3]}`)}）` : s; }
 function esc(s){ return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function dateToKey(d){ return d.getFullYear()+"/"+("0"+(d.getMonth()+1)).slice(-2)+"/"+("0"+d.getDate()).slice(-2); }
 function keyToDate(key){ const m=String(key||"").match(/(\d{4})\/(\d{2})\/(\d{2})/); return m?new Date(+m[1],+m[2]-1,+m[3],12):new Date(); }
