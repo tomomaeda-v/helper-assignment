@@ -49,9 +49,9 @@
   .seg button{ border:none; background:transparent; padding:7px 15px; cursor:pointer; font-size:12px; color:var(--sub); transition:background .15s,color .15s; }
   .seg button.active{ background:var(--accent); color:#fff; font-weight:700; }
   .seg.view{ gap:7px; border:none; border-radius:0; overflow:visible; background:transparent; box-shadow:none; }
-  .seg.view button{ display:inline-flex; align-items:center; gap:7px; padding:8px 13px 8px 9px; border:1px solid #d8e0eb; border-radius:12px; background:#fff; color:#475569; font-weight:800; box-shadow:0 2px 7px rgba(15,23,42,.08); transition:transform .15s,box-shadow .15s,border-color .15s,background .15s,color .15s; }
-  .seg.view button:hover{ transform:translateY(-1px); border-color:#9fb0c6; box-shadow:0 5px 14px rgba(15,23,42,.12); }
-  .seg.view button.active{ color:#fff; border-color:transparent; transform:translateY(-1px); box-shadow:0 7px 18px rgba(15,23,42,.22); }
+  .seg.view button{ display:inline-flex; align-items:center; gap:7px; padding:8px 13px 8px 9px; border:1px solid #d8e0eb; border-radius:12px; background:#fff; color:#475569; font-weight:800; box-shadow:0 2px 7px rgba(15,23,42,.08); transition:box-shadow .15s,border-color .15s,background .15s,color .15s; }
+  .seg.view button:hover{ border-color:#9fb0c6; box-shadow:0 5px 14px rgba(15,23,42,.12); }
+  .seg.view button.active{ color:#fff; border-color:transparent; box-shadow:0 7px 18px rgba(15,23,42,.22); }
   .seg.view button[data-view="user"].active{ background:linear-gradient(135deg,#0f172a,#334155); }
   .seg.view button[data-view="helper"].active{ background:linear-gradient(135deg,#047857,#059669); }
   .seg.view button[data-view="calendar"].active{ background:linear-gradient(135deg,#1d4ed8,#2563eb); }
@@ -306,6 +306,9 @@ let SEED=null, CK=null, state=null, officeFilter="all", query="", viewMode="user
 let scheduleRange="today", scheduleAnchor=todayKey();
 let calendarAnchor=todayKey();
 const $ = s=>document.querySelector(s);
+function setAddEntityVisible(visible){
+  const button=$("#addEntity"); button.style.display=""; button.style.visibility=visible?"visible":"hidden"; button.style.pointerEvents=visible?"":"none"; button.tabIndex=visible?0:-1;
+}
 
 function b64ToBytes(b){ const s=atob(b); const a=new Uint8Array(s.length); for(let i=0;i<s.length;i++)a[i]=s.charCodeAt(i); return a; }
 function bytesToB64(a){ let s=""; const u=new Uint8Array(a); for(let i=0;i<u.length;i++)s+=String.fromCharCode(u[i]); return btoa(s); }
@@ -367,7 +370,7 @@ function render(){
   $(".layout").style.display="flex";
   $("#schedulePanel").style.display="none";
   $("#calendarPanel").style.display="none";
-  $("#addEntity").style.display="";
+  setAddEntityVisible(true);
   const listEl=$("#entityList"); const detailEl=$("#detailPanel");
   listEl.innerHTML=""; const q=query.trim();
   const dim = viewMode;
@@ -482,7 +485,7 @@ function renderSchedule(){
   $(".layout").style.display="none";
   $("#schedulePanel").style.display="block";
   $("#calendarPanel").style.display="none";
-  $("#addEntity").style.display="none";
+  setAddEntityVisible(false);
   const panel=$("#schedulePanel");
   const from=scheduleRange==="week"?startOfWeek(scheduleAnchor):scheduleAnchor;
   const to=scheduleRange==="week"?addDays(from,6):from;
@@ -539,7 +542,7 @@ function renderCalendar(){
   $(".layout").style.display="none";
   $("#schedulePanel").style.display="none";
   $("#calendarPanel").style.display="block";
-  $("#addEntity").style.display="none";
+  setAddEntityVisible(false);
   const panel=$("#calendarPanel"), monthStart=monthStartKey(calendarAnchor), monthNext=addMonths(monthStart,1), monthEnd=addDays(monthNext,-1);
   const q=query.trim().toLowerCase();
   const records=(state.schedule||[]).map(normalizeScheduleItem).filter(Boolean).filter(s=>s.date>=monthStart&&s.date<=monthEnd&&
