@@ -213,23 +213,14 @@
   .map-notice{ display:flex; align-items:flex-start; gap:9px; margin-top:12px; padding:9px 12px; border:1px solid #ddd6fe; border-radius:12px; background:#f5f3ff; color:#5b21b6; font-size:10.5px; }
   .map-notice strong{ color:#4c1d95; }
   .map-layout{ display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:16px; align-items:stretch; }
-  .map-board{ min-height:590px; position:relative; isolation:isolate; overflow:hidden; border:1px solid #d5dde8; border-radius:var(--r-lg); background:linear-gradient(160deg,#dff4ef 0%,#e8f4ef 44%,#dcebf4 100%); box-shadow:var(--shadow-md); }
-  .map-land{ position:absolute; z-index:0; inset:5% 4% 9% 4%; clip-path:polygon(8% 8%,25% 2%,44% 7%,62% 3%,80% 13%,94% 28%,91% 47%,98% 65%,86% 83%,67% 91%,48% 86%,31% 95%,14% 82%,5% 64%,10% 45%,2% 27%); background:linear-gradient(145deg,#fdfefb,#f4f7ed); filter:drop-shadow(0 12px 12px rgba(30,41,59,.10)); }
-  .map-land::after{ content:""; position:absolute; inset:0; background-image:radial-gradient(circle at 20% 18%,rgba(22,163,74,.07) 0 9%,transparent 10%),radial-gradient(circle at 78% 28%,rgba(22,163,74,.06) 0 10%,transparent 11%),radial-gradient(circle at 62% 76%,rgba(22,163,74,.06) 0 9%,transparent 10%); }
-  .map-river{ position:absolute; z-index:1; left:-10%; bottom:-47px; width:125%; height:120px; border-radius:46% 54% 0 0; transform:rotate(-5deg); background:linear-gradient(180deg,#a8d8ef,#70b9df); box-shadow:inset 0 13px 18px rgba(255,255,255,.32); }
-  .map-river span{ position:absolute; left:47%; top:22px; color:#2378a5; font-size:10px; font-weight:800; letter-spacing:.18em; }
-  .map-road{ position:absolute; z-index:2; height:7px; border-radius:999px; background:#fff; box-shadow:0 0 0 1px rgba(148,163,184,.25),0 2px 5px rgba(15,23,42,.05); transform-origin:left center; pointer-events:none; }
-  .map-road::after{ content:""; position:absolute; left:0; right:0; top:3px; border-top:1px dashed #cbd5e1; }
-  .map-road span{ position:absolute; left:52%; top:-16px; width:max-content; color:#8994a3; font-size:8.5px; font-weight:700; }
-  .map-road.r1{ left:8%; top:48%; width:84%; transform:rotate(-5deg); }
-  .map-road.r2{ left:22%; top:27%; width:68%; transform:rotate(8deg); }
-  .map-road.r3{ left:54%; top:8%; width:70%; transform:rotate(76deg); }
-  .map-place-label{ position:absolute; z-index:2; color:#9aa5b3; font-size:10px; font-weight:800; letter-spacing:.08em; pointer-events:none; }
+  .map-board{ min-height:0; aspect-ratio:1800/1384; position:relative; isolation:isolate; overflow:hidden; border:1px solid #cbd5e1; border-radius:var(--r-lg); background:#eef2f5 url("assets/setagaya-area-map.webp") center/100% 100% no-repeat; box-shadow:var(--shadow-md); }
   .map-direction{ position:absolute; z-index:2; color:#64748b; font-size:9px; font-weight:800; letter-spacing:.04em; }
   .map-direction.north{ top:13px; left:50%; transform:translateX(-50%); padding:4px 7px; border-radius:999px; background:rgba(255,255,255,.72); }
   .map-direction.south{ bottom:10px; right:14px; color:#2378a5; }
   .map-direction.west{ left:12px; top:50%; transform:translateY(-50%); }
   .map-direction.east{ right:12px; top:50%; transform:translateY(-50%); }
+  .map-attribution{ position:absolute; z-index:8; right:7px; bottom:6px; padding:3px 6px; border-radius:5px; background:rgba(255,255,255,.91); color:#64748b; font-size:8px; line-height:1.35; box-shadow:0 1px 4px rgba(15,23,42,.12); }
+  .map-attribution a{ color:#475569; text-decoration:underline; }
   .office-location{ position:absolute; z-index:4; transform:translate(-50%,-50%); display:flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background:rgba(255,255,255,.96); border:2px solid #334155; box-shadow:0 5px 14px rgba(15,23,42,.15); color:#1e293b; font-size:10px; font-weight:900; pointer-events:none; }
   .office-location::before{ content:""; width:9px; height:9px; border-radius:50%; background:var(--yoga); }
   .office-location.futa::before{ background:var(--futa); }
@@ -245,7 +236,7 @@
   .map-empty-overlay{ position:absolute; z-index:5; inset:0; display:grid; place-content:center; padding:32px; text-align:center; color:var(--sub); }
   .map-empty-overlay > div{ padding:20px 24px; border:1px solid rgba(203,213,225,.85); border-radius:16px; background:rgba(255,255,255,.91); box-shadow:var(--shadow-md); }
   .map-empty-overlay strong{ display:block; margin-bottom:5px; color:var(--ink); font-family:var(--font-head); font-size:17px; }
-  .map-detail{ min-height:590px; overflow:hidden; border:1px solid var(--line); border-radius:var(--r-lg); background:#fff; box-shadow:var(--shadow-md); display:flex; flex-direction:column; }
+  .map-detail{ min-height:0; overflow:hidden; border:1px solid var(--line); border-radius:var(--r-lg); background:#fff; box-shadow:var(--shadow-md); display:flex; flex-direction:column; }
   .map-detail-head{ padding:17px 18px; color:#fff; background:linear-gradient(135deg,#172033,#39465d); }
   .map-detail-head h2{ font-family:var(--font-head); font-size:17px; line-height:1.4; }
   .map-detail-meta{ margin-top:5px; color:rgba(255,255,255,.82); font-size:11px; }
@@ -289,7 +280,7 @@
     .calendar-title{ order:-1; width:100%; }
     .map-panel{ padding:14px 12px 22px; }
     .map-layout{ grid-template-columns:1fr; }
-    .map-board{ min-height:460px; }
+    .map-board{ min-height:0; }
     .map-detail{ min-height:0; max-height:520px; }
     .map-marker-label{ max-width:92px; }
   }
@@ -529,28 +520,42 @@ function render(){
   else pe.textContent="";
 }
 
-const AREA_POINTS={
-  "北烏山":[17,13],"南烏山":[18,21],"給田":[11,18],"上祖師谷":[17,27],"粕谷":[25,24],"八幡山":[31,17],"上北沢":[36,16],"桜上水":[42,20],"赤堤":[50,19],"松原":[58,18],"羽根木":[64,22],"大原":[68,17],"北沢":[73,21],
-  "成城":[12,35],"祖師谷":[21,34],"千歳台":[27,31],"船橋":[34,31],"砧":[19,43],"大蔵":[17,51],"喜多見":[8,46],"宇奈根":[7,57],"鎌田":[14,63],"岡本":[23,59],
-  "桜丘":[36,40],"経堂":[43,32],"宮坂":[50,33],"豪徳寺":[55,31],"梅丘":[61,31],"桜":[45,46],"世田谷区世田谷":[55,43],"若林":[65,38],
-  "上用賀":[35,49],"用賀":[40,55],"桜新町":[48,52],"新町":[54,52],"深沢":[58,58],"駒沢":[62,48],"上馬":[68,45],"三軒茶屋":[74,38],"太子堂":[75,33],"下馬":[76,48],"池尻":[83,34],"代沢":[76,27],
-  "瀬田":[35,64],"玉川":[36,73],"上野毛":[48,67],"野毛":[48,76],"中町":[51,59],"等々力":[58,68],"尾山台":[63,74],"玉堤":[58,83],"奥沢":[70,70],"東玉川":[70,78],
-  "目黒区中町":[82,48],"自由が丘":[72,67],"八雲":[72,59],"柿の木坂":[76,55],"中根":[77,64],"東が丘":[70,52],"大岡山":[81,72],"洗足":[85,75],"碑文谷":[83,61],"鷹番":[83,53],
-  "川崎市高津区二子":[35,85],"溝口":[26,88],"久地":[14,85],"諏訪":[41,85],"宮前平":[20,93],"宮崎":[27,92],"登戸":[6,75],"狛江市":[4,53]
+const MAP_BOUNDS={west:139.53,south:35.575,east:139.73,north:35.70};
+const AREA_COORDS={
+  "北烏山":[35.676552,139.604874],"南烏山":[35.668682,139.611069],"給田":[35.66227,139.592224],"上祖師谷":[35.663368,139.600723],"粕谷":[35.661037,139.611145],"八幡山":[35.661884,139.62146],"上北沢":[35.662247,139.625854],"桜上水":[35.658089,139.631516],"赤堤":[35.655247,139.641525],"松原":[35.668163,139.653305],"羽根木":[35.665169,139.658905],"大原":[35.668846,139.663757],"北沢":[35.662769,139.672836],
+  "成城":[35.635052,139.602493],"祖師谷":[35.6451,139.611267],"千歳台":[35.647259,139.615662],"船橋":[35.650036,139.62178],"砧":[35.637611,139.617813],"大蔵":[35.634197,139.619537],"喜多見":[35.621216,139.595947],"宇奈根":[35.619274,139.606033],"鎌田":[35.615536,139.61705],"岡本":[35.624981,139.620575],
+  "桜丘":[35.642735,139.632385],"経堂":[35.649464,139.635483],"宮坂":[35.648582,139.642349],"豪徳寺":[35.653641,139.648178],"梅丘":[35.654621,139.652588],"桜":[35.645527,139.641129],"世田谷区世田谷":[35.641434,139.649231],"若林":[35.644997,139.663315],
+  "上用賀":[35.633583,139.635147],"用賀":[35.623356,139.639709],"桜新町":[35.628891,139.642975],"新町":[35.627571,139.64949],"深沢":[35.616959,139.662445],"駒沢":[35.630497,139.659317],"上馬":[35.63715,139.66806],"三軒茶屋":[35.641197,139.671494],"太子堂":[35.644234,139.675827],"下馬":[35.63974,139.682755],"池尻":[35.644032,139.682098],"代沢":[35.657471,139.677124],
+  "瀬田":[35.614594,139.632645],"玉川":[35.609329,139.630203],"上野毛":[35.61121,139.639618],"野毛":[35.602386,139.644287],"中町":[35.608307,139.643784],"等々力":[35.602623,139.648636],"尾山台":[35.599365,139.656326],"玉堤":[35.59494,139.65155],"奥沢":[35.601883,139.677948],"東玉川":[35.596493,139.678253],
+  "目黒区中町":[35.631229,139.697342],"自由が丘":[35.610138,139.669952],"八雲":[35.61945,139.672943],"柿の木坂":[35.62101,139.67717],"中根":[35.616016,139.673264],"東が丘":[35.628658,139.669128],"大岡山":[35.611092,139.681931],"洗足":[35.61451,139.694855],"碑文谷":[35.620583,139.690094],"鷹番":[35.625717,139.687408],
+  "川崎市高津区二子":[35.608795,139.62027],"溝口":[35.5998,139.613205],"久地":[35.612198,139.602219],"諏訪":[35.60564,139.624542],"宮前平":[35.584839,139.585831],"宮崎":[35.584751,139.593445],"登戸":[35.620766,139.563782],"狛江市":[35.63483,139.578705]
 };
-const POSTAL_POINTS={
-  "150":[90,29],"151":[86,23],"152":[82,64],"153":[85,48],"154":[70,43],"155":[65,24],"156":[43,22],"157":[19,36],"158":[47,66],"145":[77,81],"146":[85,85],"168":[35,10],"201":[5,52],"211":[53,92],"212":[62,93],"213":[28,87],"214":[7,76],"215":[6,91],"216":[20,93]
+const POSTAL_COORDS={
+  "150":[35.661,139.704],"151":[35.672,139.686],"152":[35.616,139.683],"153":[35.64,139.692],"154":[35.638,139.67],"155":[35.66,139.66],"156":[35.662,139.62],"157":[35.64,139.606],"158":[35.607,139.65],"145":[35.588,139.68],"146":[35.582,139.69],"168":[35.682,139.62],"201":[35.635,139.575],"211":[35.575,139.65],"213":[35.60,139.61],"214":[35.62,139.55],"216":[35.59,139.58]
 };
+const OFFICE_COORDS={"用賀":[35.6264,139.634],"二子玉川":[35.6118,139.6267]};
 
+function mercatorY(lat){
+  const rad=Math.max(-85,Math.min(85,lat))*Math.PI/180;
+  return Math.log(Math.tan(Math.PI/4+rad/2));
+}
+function coordToMapPoint(coord){
+  if(!coord)return null;
+  const [lat,lon]=coord;
+  if(lon<MAP_BOUNDS.west||lon>MAP_BOUNDS.east||lat<MAP_BOUNDS.south||lat>MAP_BOUNDS.north)return null;
+  const x=(lon-MAP_BOUNDS.west)/(MAP_BOUNDS.east-MAP_BOUNDS.west)*100;
+  const y=(mercatorY(MAP_BOUNDS.north)-mercatorY(lat))/(mercatorY(MAP_BOUNDS.north)-mercatorY(MAP_BOUNDS.south))*100;
+  return [x,y];
+}
 function locationPoint(user){
-  const area=coarseArea(user.area||""), keys=Object.keys(AREA_POINTS).sort((a,b)=>b.length-a.length);
+  const area=coarseArea(user.area||""), keys=Object.keys(AREA_COORDS).sort((a,b)=>b.length-a.length);
   const town=keys.find(key=>area.includes(key));
-  if(town)return AREA_POINTS[town];
-  return POSTAL_POINTS[normalizePostalPrefix(user.postal||"")]||null;
+  const coord=town?AREA_COORDS[town]:POSTAL_COORDS[normalizePostalPrefix(user.postal||"")];
+  return coordToMapPoint(coord);
 }
 function mapJitter(label){
   let h=0; for(const c of String(label||""))h=(h*31+c.charCodeAt(0))>>>0;
-  return [((h%5)-2)*1.7,((Math.floor(h/5)%5)-2)*1.7];
+  return [((h%5)-2)*.7,((Math.floor(h/5)%5)-2)*.7];
 }
 function shortAreaLabel(label){
   return String(label||"").replace(/^(?:世田谷区|目黒区|大田区|渋谷区|杉並区|中野区|練馬区|狛江市|調布市|川崎市(?:高津区|多摩区|宮前区|中原区|麻生区|幸区))/,"")||label;
@@ -579,7 +584,7 @@ function renderMap(){
   const selectedGroup=groups.find(g=>g.key===mapSelectedKey)||null;
   const areaSwitcher=groups.map(g=>`<button class="map-area-btn ${g.office==="二子玉川"?"futa":"yoga"}${g.key===mapSelectedKey?" active":""}" type="button" data-map-key="${esc(g.key)}"><span>${esc(shortAreaLabel(g.label))}（${g.users.length}）</span></button>`).join("");
   const markers=groups.map(g=>{
-    const jitter=mapJitter(g.key), officeOffset=g.office==="用賀"?-1.4:1.4;
+    const jitter=mapJitter(g.key), officeOffset=g.office==="用賀"?-.55:.55;
     const x=Math.max(6,Math.min(94,g.point[0]+jitter[0]+officeOffset)), y=Math.max(7,Math.min(89,g.point[1]+jitter[1]));
     const cls=g.office==="二子玉川"?"futa":"yoga";
     const size=Math.min(70,48+Math.sqrt(g.users.length)*5);
@@ -598,7 +603,11 @@ function renderMap(){
     detail=`<aside class="map-detail"><div class="map-detail-head"><h2>エリア詳細</h2><div class="map-detail-meta">地点を押すと利用者を表示します</div></div><div class="map-user-list"><div class="empty">表示できる位置データがありません</div></div>${unlocated.length?`<div class="map-unlocated">位置データなし ${unlocated.length}名</div>`:""}</aside>`;
   }
   const empty=groups.length?"":`<div class="map-empty-overlay"><div><strong>地図に表示できるデータがありません</strong>住所または郵便番号を含むCSVを取り込むと、町名・郵便番号単位で表示します。</div></div>`;
-  panel.innerHTML=`<div class="map-shell"><div class="map-toolbar"><div><div class="map-kicker">利用者エリアマップ</div><div class="map-subtitle">町名・郵便番号単位の概略位置。マーカーの大きさで利用者数を比較できます。</div></div><div class="map-key"><span><i></i>用賀</span><span><i class="futa"></i>二子玉川</span><span><i class="office"></i>事業所</span></div></div><div class="map-layout"><div class="map-board" aria-label="利用者のエリア分布"><div class="map-land"></div><div class="map-river"><span>多摩川</span></div><div class="map-road r1"><span>世田谷通り</span></div><div class="map-road r2"><span>環状八号線方面</span></div><div class="map-road r3"><span>国道246号方面</span></div><span class="map-place-label" style="left:42%;top:37%">世田谷区</span><span class="map-place-label" style="left:78%;top:49%">目黒区</span><span class="map-place-label" style="left:5%;top:57%">狛江市</span><span class="map-place-label" style="left:24%;top:88%;color:#287da8">川崎市</span><span class="map-direction north">↑ 北</span><span class="map-direction south">南・川崎方面</span><span class="map-direction west">西・狛江方面</span><span class="map-direction east">東・渋谷方面</span><span class="office-location" style="left:40%;top:55%">用賀事業所</span><span class="office-location futa" style="left:36%;top:73%">二子玉川事業所</span>${markers}${empty}</div>${detail}</div><div class="map-notice"><span aria-hidden="true">🔒</span><div><strong>住所は外部送信しません。</strong> 番地・建物名は保存せず、町名と郵便番号の先頭3桁だけをこの端末内で使用します。</div></div></div>`;
+  const officeMarkers=Object.entries(OFFICE_COORDS).map(([name,coord])=>{
+    const point=coordToMapPoint(coord);
+    return point?`<span class="office-location${name==="二子玉川"?" futa":""}" style="left:${point[0]}%;top:${point[1]}%">${name}事業所</span>`:"";
+  }).join("");
+  panel.innerHTML=`<div class="map-shell"><div class="map-toolbar"><div><div class="map-kicker">利用者エリアマップ</div><div class="map-subtitle">世田谷区周辺の実地図上に、町名・郵便番号単位の概略位置を表示します。</div></div><div class="map-key"><span><i></i>用賀</span><span><i class="futa"></i>二子玉川</span><span><i class="office"></i>事業所</span></div></div><div class="map-layout"><div class="map-board" aria-label="利用者のエリア分布"><span class="map-direction north">↑ 北</span>${officeMarkers}${markers}${empty}<span class="map-attribution">出典：<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a>（地理院タイルを加工）</span></div>${detail}</div><div class="map-notice"><span aria-hidden="true">🔒</span><div><strong>住所は外部送信しません。</strong> 地図画像はサイト内に保存済みです。番地・建物名は保存せず、町名と郵便番号の先頭3桁だけをこの端末内で使用します。</div></div></div>`;
   panel.querySelectorAll("[data-map-key]").forEach(marker=>marker.onclick=()=>{ mapSelectedKey=marker.dataset.mapKey; renderMap(); });
   const plottedUsers=located.length;
   $("#summary").innerHTML=`<div class="sumcard"><span class="si">🏠</span><div><div class="sv">${scoped.length}</div><div class="sl">対象利用者</div></div></div><div class="sumcard"><span class="si">📍</span><div><div class="sv">${plottedUsers}</div><div class="sl">地図表示</div></div></div><div class="sumcard"><span class="si">🗺️</span><div><div class="sv">${groups.length}</div><div class="sl">エリア数</div></div></div><div class="sumcard ${unlocated.length?"warn":"ok"}"><span class="si">⚠️</span><div><div class="sv">${unlocated.length}</div><div class="sl">位置データなし</div></div></div>`;
