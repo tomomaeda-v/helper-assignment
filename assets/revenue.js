@@ -9,7 +9,7 @@ const REVENUE_UNIT_RATES = {care:11.4,disability:11.2};
 let revenueFrom="", revenueTo="", revenueDemo=false, revenueImportStatus="";
 
 function revenueMonth(value){
-  const s=String(value||"");
+  const s=String(value||"").normalize("NFKC").trim().replace(/[\/.]/g,"-");
   return /^\d{4}-(0[1-9]|1[0-2])$/.test(s)&&s.slice(0,4)!=="0000"?s:"";
 }
 function shiftRevenueMonth(month,offset){
@@ -29,14 +29,15 @@ function revenueMonths(from,to){
 function normalizeRevenueRecords(records){
   const unique=new Map();
   for(const row of Array.isArray(records)?records:[]){
-    if(!row||!revenueMonth(row.month)||!REVENUE_OFFICES.includes(row.office))continue;
+    const month=revenueMonth(row?.month);
+    if(!row||!month||!REVENUE_OFFICES.includes(row.office))continue;
     const amounts={};
     for(const category of REVENUE_CATEGORIES){
       const n=row.amounts?.[category.key];
       amounts[category.key]=typeof n==="number"&&Number.isSafeInteger(n)&&n>=0?n:null;
     }
     const sourceRows=Number.isSafeInteger(row.meta?.sourceRows)&&row.meta.sourceRows>=0?row.meta.sourceRows:0;
-    unique.set(row.office+"|"+row.month,{office:row.office,month:row.month,amounts,meta:{sourceRows}});
+    unique.set(row.office+"|"+month,{office:row.office,month,amounts,meta:{sourceRows}});
   }
   return [...unique.values()];
 }
@@ -186,7 +187,7 @@ function calculateRevenueRows(rows,fileName=""){
       office=decision?.office||((officeFilter==="用賀"||officeFilter==="二子玉川")?officeFilter:"用賀");
       estimatedOfficeRows++;
     }
-    const month=date.slice(0,7), groupKey=office+"|"+month;
+    const month=revenueMonth(date.slice(0,7)), groupKey=office+"|"+month;
     if(!present.has(groupKey))present.set(groupKey,new Set());
     const units=revenueNumber(indexes.iUnits>=0?row[indexes.iUnits]:null);
     if(category==="private"){
@@ -264,7 +265,7 @@ function renderRevenue(){
   const panel=$("#revenuePanel"); panel.style.display="block";
   const records=normalizeRevenueRecords(revenueDemo?revenueSampleRecords():state.revenue);
   if(!revenueTo){
-    revenueTo=records.map(r=>r.month).sort().at(-1)||todayKey().slice(0,7);
+    revenueTo=records.map(r=>r.month).sort().at(-1)||revenueMonth(todayKey().slice(0,7));
     revenueFrom=shiftRevenueMonth(revenueTo,-1);
   }
   const months=summarizeRevenue(records,revenueMonths(revenueFrom,revenueTo),officeFilter);
