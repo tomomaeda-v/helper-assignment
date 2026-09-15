@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>訪問分析ツール</title>
+<link rel="stylesheet" href="assets/revenue.css?v=20260915b">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@700;900&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
@@ -322,6 +323,7 @@
         <button data-view="user" class="active"><span class="view-icon" aria-hidden="true">👤</span>利用者ベース</button>
         <button data-view="helper"><span class="view-icon" aria-hidden="true">🧑‍⚕️</span>ヘルパーベース</button>
         <button data-view="map"><span class="view-icon" aria-hidden="true">🗺️</span>地図</button>
+        <button data-view="revenue"><span class="view-icon" aria-hidden="true">📊</span>売上比較</button>
       </div>
       <input type="search" id="search" placeholder="名前で検索">
       <div class="seg" id="officeSeg">
@@ -352,6 +354,7 @@
 <div class="schedule-panel" id="schedulePanel" style="display:none"></div>
 <div class="calendar-panel" id="calendarPanel" style="display:none"></div>
 <div class="map-panel" id="mapPanel" style="display:none"></div>
+<div id="revenuePanel" style="display:none"></div>
 <footer>変更は暗号化してこの端末のブラウザに自動保存されます。「保存(JSON)」でデータをファイルに書き出せます。</footer>
 </div>
 <div class="toast" id="toast"></div>
@@ -392,7 +395,7 @@ function seedState(){
   SEED.forEach(d=>{ const hk=d.office+"|"+d.helper; if(!hseen.has(hk)){hseen.add(hk);helpers.push({office:d.office,name:d.helper});}
     const uk=d.office+"|"+d.user; if(!useen.has(uk)){useen.add(uk);users.push({office:d.office,name:d.user});} });
   const assignments=SEED.map((d,i)=>({id:i+1,office:d.office,helper:d.helper,user:d.user,visits:d.visits||0,cat:d.cat||"",svc:d.svc||"",dates:normalizeVisitDates(d.dates||d.visitDates||[])}));
-  return {helpers, users, assignments, schedule:[]};
+  return {helpers, users, assignments, schedule:[], revenue:[]};
 }
 function ensureUsers(st){
   if(!st.users){ const u=[],s=new Set(); st.assignments.forEach(a=>{const k=a.office+"|"+a.user; if(!s.has(k)){s.add(k);u.push({office:a.office,name:a.user});}}); st.users=u; }
@@ -400,6 +403,7 @@ function ensureUsers(st){
   st.assignments.forEach(a=>{ a.dates=normalizeVisitDates(a.dates||a.visitDates||[]); });
   if(!Array.isArray(st.schedule))st.schedule=[];
   st.schedule=st.schedule.map(normalizeScheduleItem).filter(Boolean);
+  if(!Array.isArray(st.revenue))st.revenue=[];
   return st;
 }
 async function loadState(){
@@ -420,6 +424,9 @@ function officeBadge(of){ const cls=of==="二子玉川"?"futa":of==="用賀"?"yo
 
 function render(){
   reconcile();
+  document.body.classList.toggle("revenue-view",viewMode==="revenue");
+  $("#revenuePanel").style.display="none";
+  if(viewMode==="revenue"){ renderRevenue(); return; }
   if(viewMode==="schedule"){ renderSchedule(); return; }
   if(viewMode==="calendar"){ renderCalendar(); return; }
   if(viewMode==="map"){ renderMap(); return; }
@@ -1030,15 +1037,15 @@ function bindControls(){
   $("#viewSeg").addEventListener("click",e=>{ const btn=e.target.closest("button"); if(!btn)return;
     $("#viewSeg .active").classList.remove("active"); btn.classList.add("active"); viewMode=btn.dataset.view;
     if(viewMode==="calendar")calendarAnchor=preferredCalendarDate();
-    $("#viewHint").textContent = viewMode==="user" ? "利用者ごとに担当ヘルパーを組み換え" : viewMode==="helper" ? "ヘルパーごとに担当利用者を組み換え" : viewMode==="schedule" ? "訪問予定を日付・曜日・時間順に確認" : viewMode==="calendar" ? "訪問件数の集中を月・曜日別に確認" : "利用者の所在を町名・郵便番号単位で確認";
+    $("#viewHint").textContent = viewMode==="revenue" ? "月ごとの売上とサービス別の内訳を比較" : viewMode==="user" ? "利用者ごとに担当ヘルパーを組み換え" : viewMode==="helper" ? "ヘルパーごとに担当利用者を組み換え" : viewMode==="schedule" ? "訪問予定を日付・曜日・時間順に確認" : viewMode==="calendar" ? "訪問件数の集中を月・曜日別に確認" : "利用者の所在を町名・郵便番号単位で確認";
     $("#search").placeholder=viewMode==="map"?"利用者名・町名で検索":(viewMode==="schedule"||viewMode==="calendar")?"名前・サービスで検索":"名前で検索";
     render(); });
   $("#officeSeg").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b)return;
     $("#officeSeg .active").classList.remove("active"); b.classList.add("active"); officeFilter=b.dataset.of; if(viewMode==="calendar")calendarAnchor=preferredCalendarDate(); render(); });
   $("#search").addEventListener("input",e=>{ query=e.target.value; if(viewMode==="calendar")calendarAnchor=preferredCalendarDate(); render(); });
-  $("#resetBtn").onclick=()=>{ if(confirm("すべてのデータ（取り込んだCSV・手動での変更・初期割り当て）を消して、空の状態にします。よろしいですか？")){ state={helpers:[],users:[],assignments:[],schedule:[]}; save(); render(); toast("すべてのデータを消去しました"); } };
+  $("#resetBtn").onclick=()=>{ if(confirm("すべてのデータ（取り込んだCSV・売上・手動での変更・初期割り当て）を消して、空の状態にします。よろしいですか？")){ state={helpers:[],users:[],assignments:[],schedule:[],revenue:[]}; save(); render(); toast("すべてのデータを消去しました"); } };
   $("#exportJson").onclick=()=>{ download("担当割振り.json", JSON.stringify(state,null,2)); toast("JSONを書き出しました"); };
-  $("#exportCsv").onclick=()=>{ const rows=[["事業所","ヘルパー","利用者","訪問回数","訪問日一覧","サービス分類","主なサービス名"]];
+  $("#exportCsv").onclick=()=>{ if(viewMode==="revenue"){ exportRevenueCsv(); return; } const rows=[["事業所","ヘルパー","利用者","訪問回数","訪問日一覧","サービス分類","主なサービス名"]];
     state.assignments.slice().sort((a,b)=>a.office.localeCompare(b.office,"ja")||a.user.localeCompare(b.user,"ja"))
       .forEach(a=>rows.push([a.office,a.helper,a.user,a.visits,normalizeVisitDates(a.dates).join("・"),a.cat,a.svc]));
     const csv="﻿"+rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\r\n");
@@ -1047,5 +1054,6 @@ function bindControls(){
   $("#scheduleFileInput").onchange=e=>{ const f=e.target.files[0]; if(!f)return; importScheduleCsv(f); e.target.value=""; };
 }
 </script>
+<script src="assets/revenue.js?v=20260915b"></script>
 </body>
 </html>
