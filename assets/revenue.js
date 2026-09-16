@@ -6,6 +6,15 @@ const REVENUE_CATEGORIES = [
 ];
 const REVENUE_OFFICES = ["用賀","二子玉川"];
 const REVENUE_UNIT_RATES = {care:11.4,disability:11.2};
+const REVENUE_TREATMENT_RATES = {
+  care:{legacy:0.245,iRo:0.287},
+  disability:{
+    home:{legacy:0.417,iRo:0.456},
+    severeVisit:{legacy:0.343,iRo:0.382},
+    accompanying:{legacy:0.417,iRo:0.456},
+    behavioral:{legacy:0.382,iRo:0.421}
+  }
+};
 let revenueFrom="", revenueTo="", revenueDemo=false, revenueImportStatus="";
 
 function revenueMonth(value){
@@ -118,13 +127,23 @@ function revenueNumber(value){
   const n=Number(s);
   return Number.isFinite(n)?n:null;
 }
-function revenueCategory(classification,serviceName,serviceKind){
-  const text=`${classification||""} ${serviceName||""} ${serviceKind||""}`.normalize("NFKC");
+function revenueCategory(classification,serviceName,serviceKind,serviceItem="",groupName=""){
+  const text=`${classification||""} ${serviceName||""} ${serviceKind||""} ${serviceItem||""} ${groupName||""}`.normalize("NFKC");
+  if(/移動支援|移動介護|外出支援|ガイドヘルプ|ガイドヘルパー/.test(text))return "mobility";
   if(/自費|保険外/.test(text))return "private";
-  if(/移動支援/.test(text))return "mobility";
   if(/障害|居宅介護|重度訪問|同行援護|行動援護/.test(text))return "disability";
   if(/介護|総合事業|訪問型/.test(text)||/^(11|A2)$/i.test(String(serviceKind||"").trim()))return "care";
   return "";
+}
+function revenueTreatmentRate(category,serviceText,month){
+  const current=revenueMonth(month)>="2026-06", period=current?"iRo":"legacy";
+  if(category==="care")return REVENUE_TREATMENT_RATES.care[period];
+  if(category!=="disability")return 0;
+  const text=String(serviceText||"").normalize("NFKC");
+  if(/重度訪問/.test(text))return REVENUE_TREATMENT_RATES.disability.severeVisit[period];
+  if(/行動援護/.test(text))return REVENUE_TREATMENT_RATES.disability.behavioral[period];
+  if(/同行援護/.test(text))return REVENUE_TREATMENT_RATES.disability.accompanying[period];
+  return REVENUE_TREATMENT_RATES.disability.home[period];
 }
 function revenueRowIsActual(row,indexes){
   const workStart=indexes.iWorkStart>=0?String(row[indexes.iWorkStart]||"").trim():"";
@@ -141,6 +160,7 @@ function revenueIndexes(header){
     iKind:flexibleHeaderIndex(header,["サービス種類","サービス種別"]),
     iItem:flexibleHeaderIndex(header,["サービス項目","サービスコード"]),
     iService:flexibleHeaderIndex(header,["サービス名","主なサービス名"]),
+    iGroup:flexibleHeaderIndex(header,["グループ名","グループ"]),
     iUnits:flexibleHeaderIndex(header,["単位数/金額","単位数","金額"]),
     iPrivateBase:flexibleHeaderIndex(header,["本体価格（自費）","本体価格(自費)","自費本体価格"]),
     iActual:flexibleHeaderIndex(header,["実績有無","実績区分","実績状況","提供実績","サービス実績","実績"]),
@@ -167,7 +187,7 @@ function calculateRevenueRows(rows,fileName=""){
   let nextOffice="";
   for(let i=prepared.length-1;i>=0;i--){if(prepared[i].directOffice)nextOffice=prepared[i].directOffice;if(!prepared[i].rowOffice)prepared[i].rowOffice=nextOffice;}
   const fileOffice=detectOfficeName(fileName), claimUnits=new Map(), directAmounts=new Map(), present=new Map(), monthlySeen=new Set();
-  let includedRows=0, skippedRows=0, duplicateRows=0, estimatedOfficeRows=0, missingPrivateBase=0;
+  let includedRows=0, skippedRows=0, duplicateRows=0, estimatedOfficeRows=0, missingPrivateBase=0, mobilityFromPrivateRows=0;
   for(const item of prepared){
     const {row,rowIndex}=item, date=normDate(row[indexes.iDate]);
     if(!date){if(String(row[indexes.iDate]||"").trim())skippedRows++;continue;}
@@ -175,7 +195,8 @@ function calculateRevenueRows(rows,fileName=""){
     const serviceKind=indexes.iKind>=0?String(row[indexes.iKind]||"").trim():"";
     const serviceItem=indexes.iItem>=0?String(row[indexes.iItem]||"").trim():"";
     const serviceName=indexes.iService>=0?String(row[indexes.iService]||"").trim():"";
-    const category=revenueCategory(classification,serviceName,serviceKind);
+    const groupName=indexes.iGroup>=0?String(row[indexes.iGroup]||"").trim():"";
+    const category=revenueCategory(classification,serviceName,serviceKind,serviceItem,groupName);
     if(!category){skippedRows++;continue;}
     if(!revenueRowIsActual(row,indexes)){skippedRows++;continue;}
     const userName=indexes.iUserName>=0?String(row[indexes.iUserName]||"").trim():"";
@@ -190,16 +211,20 @@ function calculateRevenueRows(rows,fileName=""){
     const month=revenueMonth(date.slice(0,7)), groupKey=office+"|"+month;
     if(!present.has(groupKey))present.set(groupKey,new Set());
     const units=revenueNumber(indexes.iUnits>=0?row[indexes.iUnits]:null);
+    const privateBase=revenueNumber(indexes.iPrivateBase>=0?row[indexes.iPrivateBase]:null);
     if(category==="private"){
-      const amount=revenueNumber(indexes.iPrivateBase>=0?row[indexes.iPrivateBase]:null);
-      if(amount===null||amount<0){missingPrivateBase++;skippedRows++;continue;}
+      if(privateBase===null||privateBase<0){missingPrivateBase++;skippedRows++;continue;}
+      present.get(groupKey).add(category); revenueAddAmount(directAmounts,groupKey+"|"+category,Math.round(privateBase)); includedRows++; continue;
+    }
+    if(category==="mobility"){
+      const classifiedAsPrivate=/自費|保険外/.test(classification.normalize("NFKC"));
+      const amount=privateBase!==null&&privateBase>=0?privateBase:units;
+      if(amount===null||amount<0){skippedRows++;continue;}
+      if(classifiedAsPrivate)mobilityFromPrivateRows++;
       present.get(groupKey).add(category); revenueAddAmount(directAmounts,groupKey+"|"+category,Math.round(amount)); includedRows++; continue;
     }
     if(units===null||units<0){skippedRows++;continue;}
     present.get(groupKey).add(category);
-    if(category==="mobility"){
-      revenueAddAmount(directAmounts,groupKey+"|"+category,Math.round(units)); includedRows++; continue;
-    }
     const userKey=userValue||userName||`row-${rowIndex}`;
     const isA2Monthly=/^A2$/i.test(serviceKind)&&!/日割/.test(serviceName+serviceItem);
     if(isA2Monthly){
@@ -207,13 +232,15 @@ function calculateRevenueRows(rows,fileName=""){
       if(monthlySeen.has(duplicateKey)){duplicateRows++;continue;}
       monthlySeen.add(duplicateKey);
     }
-    const rate=REVENUE_UNIT_RATES[category], claimKey=[office,month,category,serviceKind||classification,userKey,rate].join("|");
+    const rate=REVENUE_UNIT_RATES[category], treatmentRate=revenueTreatmentRate(category,`${classification} ${serviceKind} ${serviceItem} ${serviceName} ${groupName}`,month);
+    const claimKey=[office,month,category,serviceKind||classification,userKey,rate,treatmentRate].join("|");
     revenueAddAmount(claimUnits,claimKey,units); includedRows++;
   }
   const calculated=new Map(directAmounts);
   for(const [key,units] of claimUnits){
-    const [office,month,category,,,rate]=key.split("|");
-    revenueAddAmount(calculated,[office,month,category].join("|"),Math.floor(units*Number(rate)));
+    const [office,month,category,,,rate,treatmentRate]=key.split("|");
+    const treatmentUnits=Math.round(units*Number(treatmentRate||0));
+    revenueAddAmount(calculated,[office,month,category].join("|"),Math.floor((units+treatmentUnits)*Number(rate)));
   }
   const updates=[];
   for(const [groupKey,categories] of present){
@@ -222,7 +249,7 @@ function calculateRevenueRows(rows,fileName=""){
     updates.push({office,month,amounts,meta:{sourceRows:includedRows}});
   }
   if(!updates.length)throw new Error("売上として集計できる実績データがありませんでした");
-  return {updates,includedRows,skippedRows,duplicateRows,estimatedOfficeRows,missingPrivateBase};
+  return {updates,includedRows,skippedRows,duplicateRows,estimatedOfficeRows,missingPrivateBase,mobilityFromPrivateRows};
 }
 async function decodeRevenueCsv(file){
   const buf=await file.arrayBuffer();
@@ -242,11 +269,11 @@ function mergeRevenueUpdates(records,updates){
 }
 async function importRevenueCsvFiles(fileList){
   const files=[...fileList]; if(!files.length)return;
-  const updates=[], errors=[]; let included=0,duplicate=0,skipped=0,estimated=0,missingBase=0;
+  const updates=[], errors=[]; let included=0,duplicate=0,skipped=0,estimated=0,missingBase=0,mobilityFromPrivate=0;
   for(const file of files){
     try{
       const text=await decodeRevenueCsv(file), result=calculateRevenueRows(parseCSV(text),file.name);
-      updates.push(...result.updates); included+=result.includedRows; duplicate+=result.duplicateRows; skipped+=result.skippedRows; estimated+=result.estimatedOfficeRows; missingBase+=result.missingPrivateBase;
+      updates.push(...result.updates); included+=result.includedRows; duplicate+=result.duplicateRows; skipped+=result.skippedRows; estimated+=result.estimatedOfficeRows; missingBase+=result.missingPrivateBase; mobilityFromPrivate+=result.mobilityFromPrivateRows;
     }catch(error){errors.push(`${file.name}：${error.message||"読取エラー"}`);}
   }
   if(!updates.length){toast(errors[0]||"売上CSVを取り込めませんでした",5000);return;}
@@ -254,7 +281,7 @@ async function importRevenueCsvFiles(fileList){
   const importedMonths=[...new Set(updates.map(r=>r.month))].sort(), first=importedMonths[0], last=importedMonths.at(-1);
   revenueTo=last; revenueFrom=importedMonths.length>1&&revenueMonths(first,last).length?first:shiftRevenueMonth(last,-1);
   const total=updates.reduce((sum,row)=>sum+Object.values(row.amounts).reduce((s,n)=>s+n,0),0);
-  const notes=[`実績${included}行`,duplicate?`月額包括の重複${duplicate}行を除外`:"",skipped?`対象外${skipped}行`:"",estimated?`事業所推定${estimated}行`:"",missingBase?`自費本体価格なし${missingBase}行`:""].filter(Boolean).join("・");
+  const notes=[`実績${included}行`,mobilityFromPrivate?`自費内の移動支援${mobilityFromPrivate}行を振り分け`:"",duplicate?`月額包括の重複${duplicate}行を除外`:"",skipped?`対象外${skipped}行`:"",estimated?`事業所推定${estimated}行`:"",missingBase?`自費本体価格なし${missingBase}行`:""].filter(Boolean).join("・");
   revenueImportStatus=`${files.length}ファイルを取り込み、${revenueMan(total)}万円を集計しました（${notes}）。`;
   await save(); renderRevenue();
   toast(`売上CSVを取り込みました（${revenueMan(total)}万円）${errors.length?`・${errors.length}件は読取不可`:""}`,5000);
@@ -283,8 +310,8 @@ function renderRevenue(){
       <div class="rev-stat"><div class="rev-stat-label">${latest?revenueMonthLabel(latest.month):"終了月"}の売上</div><div class="rev-stat-value">${latest?.total!=null?revenueMan(latest.total)+'<small>万円</small>':"—"}</div><div class="rev-stat-note">${latest?.total!=null&&!latest.complete?"一部未集計":scope}</div></div>
       <div class="rev-stat"><div class="rev-stat-label">前月との差（終了月）</div><div class="rev-stat-value ${diff?.amount>0?"rev-up":diff?.amount<0?"rev-down":""}">${diff?(diff.amount>0?"+":diff.amount<0?"−":"")+revenueMan(Math.abs(diff.amount))+'<small>万円</small>':"—"}</div><div class="rev-stat-note">${diff?.percent!=null?`前月比 ${diff.percent>0?"+":""}${diff.percent.toFixed(1)}%`:"両月・全区分が揃うと比較できます"}</div></div></div>
     <div class="rev-main"><section class="rev-card rev-chart-card" aria-labelledby="revenueChartTitle"><div class="rev-chart-head"><h3 id="revenueChartTitle">月別売上の推移（概算）</h3><span class="rev-muted">単位：万円</span></div><div class="rev-legend">${revenueLegend()}</div>${revenueChart(months)}<p class="rev-chart-foot">下から 介護 → 障害 → 移動支援 → 自費。棒全体の高さが、その月の売上合計です。</p></section>
-      <aside class="rev-card rev-source"><h3>売上CSVを取り込む</h3><p class="rev-muted">カナミックの「単位数/金額」「本体価格（自費）」を使い、月・事業所・サービス区分ごとに自動集計します。</p><input type="file" id="revenueFileInput" accept=".csv,text/csv" multiple hidden><button type="button" class="btn primary rev-import-button" id="revenueImport">売上CSV取込</button><p class="rev-file-hint">複数月・両事業所のCSVをまとめて選択できます。</p><div class="rev-rule"><strong>計算方法</strong><ul><li>介護・総合事業：11.40円／単位</li><li>障害：11.20円／単位</li><li>移動支援：「単位数/金額」の金額</li><li>自費：「本体価格（自費）」の税抜金額</li></ul></div><p class="rev-muted rev-source-note">総合事業A2の月額包括コードは、利用者・月・コードごとに1回だけ計上します。表示額は管理・比較用の概算で、請求確定額と差が出る場合があります。</p><button type="button" class="btn rev-sample-button" id="revenueSample">${revenueDemo?"表示例を閉じる":"表示例を見る"}</button></aside></div>
-    <section class="rev-card rev-table-card" aria-labelledby="revenueTableTitle"><div class="rev-chart-head"><h3 id="revenueTableTitle">月別の内訳</h3><span class="rev-muted">単位：円</span></div>${revenueTable(months)}<p class="rev-table-note">「未集計」は0円とは区別しています。* は一部の事業所・区分が未集計の金額です。介護・障害は利用者・月・制度別に単位を合算し、1円未満を切り捨てています。</p></section></div>`;
+      <aside class="rev-card rev-source"><h3>売上CSVを取り込む</h3><p class="rev-muted">カナミックの「単位数/金額」「本体価格（自費）」を使い、月・事業所・サービス区分ごとに自動集計します。</p><input type="file" id="revenueFileInput" accept=".csv,text/csv" multiple hidden><button type="button" class="btn primary rev-import-button" id="revenueImport">売上CSV取込</button><p class="rev-file-hint">複数月・両事業所のCSVをまとめて選択できます。</p><div class="rev-rule"><strong>計算方法</strong><ul><li>介護・総合事業：11.40円／単位＋処遇改善Ⅰロ 28.7％</li><li>障害：11.20円／単位＋サービス別の処遇改善Ⅰロ</li><li>移動支援：サービス名等で自動判定（自費内も対応）</li><li>自費：「本体価格（自費）」の税抜金額</li></ul></div><p class="rev-muted rev-source-note">Ⅰロは2026年6月以降の率です。障害は居宅介護45.6％、重度訪問38.2％、同行援護45.6％、行動援護42.1％で計算します。総合事業A2の月額包括コードは、利用者・月・コードごとに1回だけ計上します。表示額は管理・比較用の概算で、請求確定額と差が出る場合があります。</p><button type="button" class="btn rev-sample-button" id="revenueSample">${revenueDemo?"表示例を閉じる":"表示例を見る"}</button></aside></div>
+    <section class="rev-card rev-table-card" aria-labelledby="revenueTableTitle"><div class="rev-chart-head"><h3 id="revenueTableTitle">月別の内訳</h3><span class="rev-muted">単位：円</span></div>${revenueTable(months)}<p class="rev-table-note">「未集計」は0円とは区別しています。* は一部の事業所・区分が未集計の金額です。介護・障害は利用者・月・制度別に単位を合算し、処遇改善加算の単位を四捨五入した後、金額の1円未満を切り捨てています。</p></section></div>`;
   $("#revenueRange").onsubmit=e=>{
     e.preventDefault();const form=e.currentTarget,from=form.elements.from.value,to=form.elements.to.value;
     if(!revenueMonths(from,to).length){$("#revenueRangeError").textContent="開始月・終了月を確認し、12か月以内の期間を選んでください。";return;}
